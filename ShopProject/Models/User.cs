@@ -17,4 +17,6 @@ public class User
     public string Password { get; set; }
 
     public decimal Balance { get; set; }
+
+    public Role Role { get; set; }
 }

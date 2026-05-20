@@ -13,7 +13,6 @@ namespace ShopProject.Db;
     public class AppDbContext : DbContext
 {
     public DbSet<User> users { get; set; }
-    public DbSet<UserRole> user_roles { get; set; }
     public DbSet<Product> products { get; set; }
     public DbSet<Order> orders { get; set; }
     public DbSet<Discount> discounts { get; set; }
@@ -26,5 +25,11 @@ namespace ShopProject.Db;
         options.UseNpgsql(
             root["ConnectionStrings"]?.ToString()
         );
+    }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>()
+            .Property(u => u.Role)
+            .HasConversion<string>();
     }
 }

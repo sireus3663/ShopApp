@@ -12,10 +12,11 @@ var newUser = new User
     Name = "test_user",
     Email = "test@mail.com",
     Password = "1234",
-    Balance = 1000
+    Balance = 1000,
+    Role = Role.Buyer
 };
 
-userRepo.Add(newUser);
+//userRepo.Add(newUser);
 var userFromDb = userRepo.GetByEmail("test@mail.com");
 
-Console.WriteLine(userFromDb.Name);
+Console.WriteLine(userFromDb.Role);
