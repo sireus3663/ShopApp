@@ -4,13 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.Models;
-
-public class UserRole
+namespace ShopProject.Models
 {
-    public Guid Id { get; set; }
-
-    public string Role { get; set; }
-
-    public Guid UserId { get; set; }
+    public enum Role
+    {
+        Buyer,
+        Seller,
+        Moderator,
+        Admin
+    }
 }
+
+
