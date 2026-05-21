@@ -1,5 +1,7 @@
-﻿using ShopProject.Models;
-using ShopProject.Db;
+﻿using ShopProject.Db;
+using ShopProject.Models;
+using ShopProject.Service;
+using ShopProject.Services;
 
 // подключение к БД
 var context = new AppDbContext();
@@ -7,16 +9,18 @@ var context = new AppDbContext();
 // создаём репозиторий
 var userRepo = new UserRepository(context);
 
-var newUser = new User
-{
-    Name = "test_user",
-    Email = "test@mail.com",
-    Password = "1234",
-    Balance = 1000,
-    Role = Role.Buyer
-};
+var userService = new UserService();
+var authService = new AuthService();
 
-//userRepo.Add(newUser);
-var userFromDb = userRepo.GetByEmail("test@mail.com");
+// Регистрация
+var user = userService.Register("Тест", "test2gjdffks@mail.com", "password123");
+Console.WriteLine($"Регистрация: {user.Name}");
 
-Console.WriteLine(userFromDb.Role);
+// Вход
+authService.Login("test2gjdffks@mail.com", "password123");
+Console.WriteLine("Вход выполнен");
+
+// Смена роли
+userService.ChangeRole(user.Id, ShopProject.Models.Role.Seller);
+Console.WriteLine("Роль изменена");
+
