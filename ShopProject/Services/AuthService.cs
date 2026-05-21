@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using ShopProject.Db;
 
-namespace ShopProject.Service
+namespace ShopProject.Services
 {
-    internal class AuthService
+    public class AuthService
     {
         private User? _currentUser;
         //=> тоже самое что get{return _currentUser}
@@ -24,33 +24,25 @@ namespace ShopProject.Service
             return _currentUser;
         }
 
-        public User? Login(string email, string password)
+        public void Login(string email, string password)
         {
-            try
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
-                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                {
-                    return null;
-                }
-
-                if (!_userRepository.Exists(email))
-                {
-                    return null;
-                }
-
-                User temp = _userRepository.GetByEmail(email);
-
-                if (temp.Password != password)
-                {
-                    return null;
-                }
-                _currentUser = temp;
-                return temp;
+                throw new Exception("поля не заполнены");
             }
-            catch (Exception)
+
+            if (!_userRepository.Exists(email))
             {
-                return null;
+                throw new Exception("пользователя с таким email не существует");
             }
+
+            User temp = _userRepository.GetByEmail(email);
+
+            if (temp.Password != password)
+            {
+                throw new Exception("пароль неверный");
+            }
+            _currentUser = temp;
         }
         public void Logout()
         {
@@ -58,8 +50,7 @@ namespace ShopProject.Service
         }
         public User RequireUser()
         {
-            if (_currentUser == null)
-                throw new InvalidOperationException("Пользователь не авторизован");
+            if (_currentUser == null) throw new InvalidOperationException("Пользователь не авторизован");
 
             return _currentUser;
         }
