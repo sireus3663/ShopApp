@@ -1,4 +1,4 @@
-﻿using ShopProject.Models;
+using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using ShopProject.Db;
 
 namespace ShopProject.Service
 {
-    internal class AuthService : IAuthService
+    internal class AuthService
     {
         private User? _currentUser;
         //=> тоже самое что get{return _currentUser}
@@ -19,38 +19,49 @@ namespace ShopProject.Service
             _userRepository = new UserRepository(context);
         }
 
-        public User Get_currentUser()
+        public User? Get_currentUser()
         {
             return _currentUser;
         }
 
-        public User Login(string email, string password)
+        public User? Login(string email, string password)
         {
-            if (_userRepository.Exists(email))
+            try
             {
-                User temp = _userRepository.GetByEmail(email);
-                if(temp.Password == password)
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 {
-                    _currentUser = temp;
-                    return temp;
+                    return null;
                 }
-                else { Console.WriteLine("Пароль не подходит"); _currentUser = null; return null; }
+
+                if (!_userRepository.Exists(email))
+                {
+                    return null;
+                }
+
+                User temp = _userRepository.GetByEmail(email);
+
+                if (temp.Password != password)
+                {
+                    return null;
+                }
+                _currentUser = temp;
+                return temp;
             }
-            else { Console.WriteLine("Нет пользователя с такой почтой"); _currentUser = null; return null; }
+            catch (Exception)
+            {
+                return null;
+            }
         }
-        public void Logout() {
+        public void Logout()
+        {
             _currentUser = null;
         }
         public User RequireUser()
         {
-            if( _currentUser == null)
-            {
-                return null;
-            }
-            else
-            {
-                return _currentUser;
-            }
+            if (_currentUser == null)
+                throw new InvalidOperationException("Пользователь не авторизован");
+
+            return _currentUser;
         }
     }
 }
