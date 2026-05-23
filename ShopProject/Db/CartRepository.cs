@@ -12,11 +12,22 @@ namespace ShopProject.Db
     {
         public CartRepository(AppDbContext context) : base(context) { }
 
-        public Cart GetByUser(Guid userId)
+        public List<Cart> GetByUser(Guid userId)
         {
             return _dbSet
-                .Include(c => c.ProductId)
-                .FirstOrDefault(c => c.UserId == userId);
+                .Where(c => c.UserId == userId)
+                .ToList();
+        }
+
+        public Cart GetCartItem(Guid userId, Guid productId)
+        {
+            return _dbSet
+                .FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
+        }
+
+        public void Save()
+        {
+            _context.SaveChanges();
         }
     }
 }
