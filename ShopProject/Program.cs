@@ -1,61 +1,35 @@
-﻿using ShopProject.Models;
+﻿using ShopProject.ConsoleCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 
 // подключение к БД
 var context = new AppDbContext();
 
+// логгер
+var logger = new LoggerService();
+
 // создание репозиториев и сервисов
 var userRepo = new UserRepository(context);
 var authService = new AuthService(context);
-var userService = new UserService(context, authService);
+var userService = new UserService(context, authService, logger);
 
+// Регистрация команд
+var registry = new CommandRegistry(logger);
+CommandInitializer.RegisterAll(registry, logger, userService);
 
-//тест регистрации и логина (не стирать)
-/*string email = "mega@gmail.com";
-string password = "coolPassword123";
-try
+Console.WriteLine("=== ShopProject ====");
+Console.WriteLine("Введите help для списка команд\n");
+while (true)
 {
-    userService.Register("coolUser123", email, password);
+    Console.Write("> ");
+    var input = Console.ReadLine()?.Trim();
 
-}
-catch (Exception ex) 
-{
-    Console.WriteLine(ex.Message);
-}
-try
-{
-    authService.Login(email, password);
+    if (string.IsNullOrEmpty(input)) continue;
 
-}
-catch (Exception ex)
-{
-    Console.WriteLine(ex.Message);
-}
-Console.WriteLine(authService.currentUser == null ? "не залогинен" : authService.currentUser.Name);
+    var parts = input.Split(' ');
+    var cmdName = parts[0];           // ← переименовано: commandName → cmdName
+    var cmdArgs = parts.Skip(1).ToArray();  // ← переименовано: args → cmdArgs
 
-if (!userRepo.Exists("adminAdmin"))
-{
-    var admin = new User { Name = "admin", Role = Role.Admin, Balance = 999999, Email = "adminAdmin", Password = "ShopAdminPassword" };
-    userRepo.Add(admin);
+    registry.Execute(cmdName, cmdArgs);  // ← выполнение комман
 }
-try
-{
-    authService.Login("adminAdmin", "ShopAdminPassword");
-
-}
-catch (Exception ex)
-{
-    Console.WriteLine(ex.Message);
-}
-try
-{
-    Console.WriteLine(authService.currentUser.Role);
-    userService.ChangeRole(userRepo.GetByEmail(email).Id, Role.Moderator);
-
-}
-catch (Exception ex)
-{
-    Console.WriteLine(ex.Message);
-}*/
-
