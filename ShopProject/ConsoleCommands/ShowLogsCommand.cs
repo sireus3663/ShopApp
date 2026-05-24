@@ -11,7 +11,7 @@ namespace ShopProject.ConsoleCommands
     {
         private readonly LoggerService _logger;
         public override string Name => "logs";
-        public override string Description => "Показать логи";
+        public override string Description => "Показать лиги";
 
         public ShowLogsCommand(LoggerService logger) => _logger = logger;
 
@@ -21,9 +21,9 @@ namespace ShopProject.ConsoleCommands
 
 
             var lines = File.ReadAllLines("logs/app.log");
-            var count = lines.Length;
+            var count = args.Length > 0 && int.TryParse(args[0], out var c) ? Math.Min(c, 20) : 10;
 
-            Info($"всего {Math.Min(count, lines.Length)} запсей логов:");
+            Info($"Последние {Math.Min(count, lines.Length)} запсей логов:");
             Console.WriteLine(new string('-', 80));
 
             foreach (var line in lines.TakeLast(count)) { Console.WriteLine(line); }

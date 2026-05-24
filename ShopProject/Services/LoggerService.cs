@@ -29,10 +29,11 @@ namespace ShopProject.Services
             }
             File.AppendAllText(_logFilePath, logEntry + Environment.NewLine);
             
-            /*var originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = level == LogLevel.Error ? ConsoleColor.Red : level == LogLevel.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
+            var originalColor = Console.ForegroundColor;
+            Console.ForegroundColor = level == LogLevel.Error ? ConsoleColor.Red
+                : level == LogLevel.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
             Console.WriteLine(logEntry);
-            Console.ForegroundColor = originalColor;*/
+            Console.ForegroundColor = originalColor;
         }
 
         public void Info(string message) => Log(LogLevel.Info, message);
