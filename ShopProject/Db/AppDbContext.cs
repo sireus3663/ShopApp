@@ -20,8 +20,10 @@ namespace ShopProject.Db;
     public DbSet<Favorite> favorites { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
+        string jsonString = File.ReadAllText("AppConfig.json");
+        JsonNode root = JsonNode.Parse(jsonString);
         options.UseNpgsql(
-            "Host=localhost;Port=5432;Database=marketplace;Username=postgres;Password=123456"
+            root["ConnectionStrings"]?.ToString()
         );
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)

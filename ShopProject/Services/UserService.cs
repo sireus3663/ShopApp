@@ -14,11 +14,13 @@ namespace ShopProject.Services
     {
         private readonly UserRepository _userRepository;
         private readonly AuthService _authService;
+        private readonly LoggerService _logger;
 
-        public UserService(AppDbContext context, AuthService authService)
+        public UserService(AppDbContext context, AuthService authService, LoggerService logs)
         {
             _userRepository = new UserRepository(context);
             _authService = authService;
+            _logger = logs;
         }
 
         public User Register(string name, string email, string password)
@@ -46,6 +48,7 @@ namespace ShopProject.Services
             };
 
             _userRepository.Add(newUser);
+            _logger.Info($"User Created [{newUser.Email}]");
             return newUser;
         }
 
