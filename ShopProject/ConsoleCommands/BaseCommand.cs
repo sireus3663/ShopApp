@@ -18,7 +18,6 @@ namespace ShopProject.ConsoleCommands
             Console.WriteLine($"[OK] {msg}");
             Console.ResetColor();
         } 
-
         protected void Error(string msg)
         {
             Console.ForegroundColor = ConsoleColor.Red;
