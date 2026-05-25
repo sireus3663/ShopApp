@@ -13,6 +13,8 @@ public class Order
 
     public Guid ProductId { get; set; }
 
+    public int Count { get; set; }
+
     public decimal Price { get; set; }
 
     public DateTime CreatedAt { get; set; }

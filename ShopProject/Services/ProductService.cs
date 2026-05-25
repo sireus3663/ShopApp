@@ -29,6 +29,8 @@ namespace ShopProject.Services
         }
         public List<Product> GetForModerate()
         {
+            if (!PermissionService.CanModerate(_authService.RequireUser().Role))
+                throw new Exception("Только модераторы могут видить список непроверенных товаров");
             return _productRepository.GetAll()
                 .Where(p => !p.IsApproved)
                 .ToList();

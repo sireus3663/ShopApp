@@ -59,3 +59,101 @@ catch (Exception ex)
     Console.WriteLine(ex.Message);
 }*/
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//------------------------
+try
+{
+    authService.Login("adminAdmin", "ShopAdminPassword");
+
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+var productRepo = new ProductRepository(context);
+var productService = new ProductService(productRepo, authService);
+var cartRepo = new CartRepository(context);
+var cartService = new CartService(cartRepo, authService);
+var orderRepo = new OrderRepository(context);
+var discountRepo = new DiscountRepository(context);
+var discountService = new DiscountService(discountRepo, authService, productRepo);
+var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService);
+var lst = new List<Product>();
+lst = productService.GetAllApproved();
+try
+{
+    /*foreach (var item in lst)
+    {
+        cartService.AddToCart(item.Id);
+    }*/
+    orderService.BuyCart();
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.InnerException?.Message);
+}
+
+

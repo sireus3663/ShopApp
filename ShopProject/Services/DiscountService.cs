@@ -43,7 +43,7 @@ namespace ShopProject.Services
         {
             if (product == null) throw new Exception("Продукта не существует");
             var disc = GetByProduct(product.Id);
-            if (disc == null) throw new Exception("На продукт нет скидки");
+            if (disc == null) return product.Price;
             return product.Price - (product.Price * disc.Percent / 100);
         }
         public Discount RemoveDiscount(Guid productId)
