@@ -9,23 +9,21 @@ namespace ShopProject.Services
     public class CartService
     {
         private readonly CartRepository _cartRepository;
-        private readonly AuthService _authService;
 
-        public CartService(CartRepository cartRepository, AuthService authService)
+        public CartService(CartRepository cartRepository)
         {
             _cartRepository = cartRepository;
-            _authService = authService;
         }
 
-        public void AddToCart(Guid productId)
+        public void AddToCart(Guid userId, Guid productId, int price, Role currentRole)
         {
 
-            if (!PermissionService.CanBuy(_authService.RequireUser().Role))
+            if (!PermissionService.CanBuy(currentRole))
             {
                 throw new Exception("У вашей роли нет прав для добавления товаров в корзину.");
             }
 
-            var existingItem = _cartRepository.GetCartItem(_authService.RequireUser().Id, productId);
+            var existingItem = _cartRepository.GetCartItem(userId, productId);
 
             if (existingItem != null)
             {
@@ -36,9 +34,10 @@ namespace ShopProject.Services
                 var newCartItem = new Cart
                 {
                     Id = Guid.NewGuid(),
-                    UserId = _authService.RequireUser().Id,
+                    UserId = userId,
                     ProductId = productId,
-                    Count = 1
+                    Count = 1,
+                    PriceAtMoment = price
                 };
 
                 _cartRepository.Add(newCartItem);
@@ -47,45 +46,30 @@ namespace ShopProject.Services
             _cartRepository.Save();
         }
 
-        public void DeleteCart(Guid cartId)
+        public void RemoveFromCart(Guid userId, Guid productId)
         {
-            if (_cartRepository.GetById(cartId) == null)
-            {
-                throw new Exception("не удалось найти корзину");
-            }
-            _cartRepository.Delete(cartId);
-        }
-        public void RemoveFromCart(Guid productId)
-        {
-            var existingItem = _cartRepository.GetCartItem(_authService.RequireUser().Id, productId);
-            if (existingItem == null)
-            {
-                throw new Exception("такого товара нет в тележке");
-            }
-            if (existingItem.Count > 1)
-            {
-                existingItem.Count--;
-            }
-            else
-            {
-                _cartRepository.Delete(existingItem.Id);
-            }
+            var existingItem = _cartRepository.GetCartItem(userId, productId);
 
-            _cartRepository.Save();
+            if (existingItem != null)
+            {
+                if (existingItem.Count > 1)
+                {
+                    existingItem.Count--;
+                }
+                else
+                {
+                    _cartRepository.Delete(existingItem.Id);
+                }
+
+                _cartRepository.Save();
+            }
         }
 
-        public List<Cart> GetCart(Guid userId)
+        public List<Guid> GetCart(Guid userId)
         {
-            if (!PermissionService.CanAdministrate(_authService.RequireUser().Role))
-            {
-                throw new Exception("У вашей роли нет прав для просмотра чужих корзин");
-            }
-            return _cartRepository
-                .GetByUser(userId);
-        }
-        public List<Cart> GetCurrentUserCart()
-        {
-            return _cartRepository.GetByUser(_authService.RequireUser().Id);
+            return _cartRepository.GetByUser(userId)
+                .Select(c => c.ProductId)
+                .ToList();
         }
     }
 }

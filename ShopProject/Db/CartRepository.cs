@@ -19,7 +19,7 @@ namespace ShopProject.Db
                 .ToList();
         }
 
-        public Cart? GetCartItem(Guid userId, Guid productId)
+        public Cart GetCartItem(Guid userId, Guid productId)
         {
             return _dbSet
                 .FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);

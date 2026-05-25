@@ -9,16 +9,14 @@ namespace ShopProject.Services
     public class FavoriteService
     {
         private readonly FavoriteRepository _favoriteRepository;
-        private readonly AuthService _authService;
 
-        public FavoriteService(FavoriteRepository favoriteRepository, AuthService authService)
+        public FavoriteService(FavoriteRepository favoriteRepository)
         {
             _favoriteRepository = favoriteRepository;
-            _authService = authService;
         }
-        public void ToggleFavorite(Guid productId)
+        public void ToggleFavorite(Guid userId, Guid productId)
         {
-            var existingItem = _favoriteRepository.GetFavoriteItem(_authService.RequireUser().Id, productId);
+            var existingItem = _favoriteRepository.GetFavoriteItem(userId, productId);
 
             if (existingItem != null)
             {
@@ -29,7 +27,7 @@ namespace ShopProject.Services
                 var newFavorite = new Favorite
                 {
                     Id = Guid.NewGuid(),
-                    UserId = _authService.RequireUser().Id,
+                    UserId = userId,
                     ProductId = productId
                 };
 
@@ -39,9 +37,9 @@ namespace ShopProject.Services
             _favoriteRepository.Save();
         }
 
-        public List<Guid> GetFavorites()
+        public List<Guid> GetFavorites(Guid userId)
         {
-            return _favoriteRepository.GetByUser(_authService.RequireUser().Id)
+            return _favoriteRepository.GetByUser(userId)
                 .Select(f => f.ProductId)
                 .ToList();
         }
