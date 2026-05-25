@@ -31,6 +31,9 @@ namespace ShopProject.Migrations
                     b.Property<int>("Count")
                         .HasColumnType("integer");
 
+                    b.Property<int>("PriceAtMoment")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 
@@ -82,9 +85,6 @@ namespace ShopProject.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Count")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -108,9 +108,6 @@ namespace ShopProject.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Amount")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasColumnType("text");
@@ -118,9 +115,6 @@ namespace ShopProject.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
