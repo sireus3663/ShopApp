@@ -15,9 +15,5 @@ namespace ShopProject.Db
         {
             return _dbSet.Where(o => o.UserId == userId).ToList();
         }
-        public List<Order> GetByProduct(Guid productId)
-        {
-            return _dbSet.Where(o=>o.ProductId == productId).ToList();
-        }
     }
 }
