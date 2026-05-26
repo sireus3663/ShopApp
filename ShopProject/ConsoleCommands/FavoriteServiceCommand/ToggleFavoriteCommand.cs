@@ -1,4 +1,5 @@
-﻿using ShopProject.Services;
+﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +28,7 @@ namespace ShopProject.ConsoleCommands.FavoriteServiceCommand
             try
             {
                 _favoriteService.ToggleFavorite(productId);
-                Success("Избранное обнавлено");
+                Success("Избранное обновлено");
             }
             catch (Exception ex) { Error(ex.Message); }
         }

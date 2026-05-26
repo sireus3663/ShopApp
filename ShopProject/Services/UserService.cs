@@ -65,5 +65,19 @@ namespace ShopProject.Services
             user.Role = newRole;
             _userRepository.Update(user);
         }
+        public void ShowProfile()
+        {
+            var currentUser = _authService.RequireUser();
+
+            Console.WriteLine(new string('=', 50));
+            Console.WriteLine($"{"Профиль пользователя",-40}");
+            Console.WriteLine(new string('=', 50));
+            Console.WriteLine($"{"ID:",-15} {currentUser.Id}");
+            Console.WriteLine($"{"Имя:",-15} {currentUser.Name}");
+            Console.WriteLine($"{"Email:",-15} {currentUser.Email}");
+            Console.WriteLine($"{"Роль:",-15} {currentUser.Role}");
+            Console.WriteLine($"{"Баланс:",-15} {currentUser.Balance} руб.");
+            Console.WriteLine(new string('=', 50));
+        }
     }
 }

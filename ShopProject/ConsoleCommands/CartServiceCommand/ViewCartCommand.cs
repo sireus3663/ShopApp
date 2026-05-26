@@ -1,4 +1,5 @@
-﻿using ShopProject.Db;
+﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Db;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -27,11 +28,14 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
             if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
             var cartItems = _cartService.GetCurrentUserCart();
             if (cartItems.Count == 0) { Info("Корзина пуста"); return; }
-            Info($"В корзине {cartItems.Count} товаров");
+            Console.WriteLine($"\nКорзина пользователя: {_authService.currentUser.Name}");
+            Console.WriteLine(new string('=', 95));
+            Console.WriteLine($"{"ID товара",-38} {"Название",-25} {"Цена",-10} {"Кол-во",-6}");
+            Console.WriteLine(new string('-', 95));
             foreach (var item in cartItems )
             {
                 var product = _productRepo.GetById(item.ProductId);
-                if (product != null) { Console.WriteLine($"  - {product.Name} | {product.Price} руб. | {item.Count} шт."); }
+                if (product != null) { Console.WriteLine($"{item.ProductId,-38} {product.Name,-25} {product.Price,-10} руб. {item.Count,-6} шт."); }
             }
         }
     }

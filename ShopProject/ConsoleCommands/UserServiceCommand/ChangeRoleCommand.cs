@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ShopProject.Models;
+using ShopProject.ConsoleCommands.BasseCommands;
 
 
 namespace ShopProject.ConsoleCommands.UserServiceCommand
@@ -17,7 +18,7 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
         private readonly AuthService _authService;
         private readonly AppDbContext _context;
 
-        public override string Name => "chanegrole";
+        public override string Name => "changerole";
         public override string Description => "Изменить роль. Использование: changerole <email> <Buyer | Seller | Moderator | Admin>";
         public ChangeRoleCommand(UserService userService, AuthService authService, AppDbContext context)
         {

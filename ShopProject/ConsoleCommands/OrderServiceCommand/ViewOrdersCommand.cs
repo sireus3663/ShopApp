@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -8,22 +9,25 @@ using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.OrderServiceCommand
 {
-    public class GetUserOrdersCommand : BaseCommand
+    public class ViewOrdersCommand : BaseCommand
     {
         private readonly OrderService _orderService;
         private readonly AuthService _authService;
 
-        public override string Name => "orders";
-        public override string Description => "Показать мои заказы";
-        public GetUserOrdersCommand(OrderService orderService, AuthService authService)
+        public override string Name => "my-order";
+        public override string Description => "Показать все мои заказы";
+
+        public ViewOrdersCommand(OrderService orderService, AuthService authService)
         {
             _orderService = orderService;
             _authService = authService;
         }
+
         public override void Execute(string[] args)
         {
             if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
             var orders = _orderService.getUserOrders(_authService.currentUser.Id);
+
             if (orders.Count == 0) { Info("У вас нет заказов"); return; }
             Info($"Всего заказов: {orders.Count}");
             Console.WriteLine(new string('-', 90));

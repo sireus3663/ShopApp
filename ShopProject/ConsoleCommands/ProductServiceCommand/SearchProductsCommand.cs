@@ -1,4 +1,5 @@
-﻿using ShopProject.Db;
+﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Db;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +20,13 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
             if (args.Length < 1) { Error("Укажите название для поиска"); return; }
             var products = _productRepo.Search(args[0]);
             if (products.Count == 0) { Info($"Товары по запросу '{args[0]}' не найдены"); return; }
+
             Info ($"Найдено {products.Count} товаров");
-            foreach (var p in products) { Console.WriteLine($"  - {p.Id} | {p.Name} | {p.Price} руб. | {p.Category}"); }
+            Console.WriteLine(new string('-', 80));
+            Console.WriteLine($"{"ID",-36} {"Название",-25} {"Цена",-10} {"Категория",-15}");
+            Console.WriteLine(new string('-', 80));
+
+            foreach (var p in products ) { Console.WriteLine($"{p.Id,-36} {p.Name,-25} {p.Price,-10} руб. | {p.Category}"); }
         }
     }
 }

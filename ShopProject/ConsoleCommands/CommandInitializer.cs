@@ -1,17 +1,14 @@
 ﻿using ShopProject.ConsoleCommands.AuthServiceCommand;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.ConsoleCommands.CartServiceCommand;
 using ShopProject.ConsoleCommands.FavoriteServiceCommand;
+using ShopProject.ConsoleCommands.ModeratorServiceCommand;
 using ShopProject.ConsoleCommands.OrderServiceCommand;
 using ShopProject.ConsoleCommands.ProductServiceCommand;
 using ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand;
 using ShopProject.ConsoleCommands.UserServiceCommand;
 using ShopProject.Db;
 using ShopProject.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands
 {
@@ -26,14 +23,20 @@ namespace ShopProject.ConsoleCommands
             FavoriteService favoriteService,
             ProductService productService,
             OrderService orderService,
+            ModeratorService moderatorService,
+            DiscountService discountService,  
             ProductRepository productRepo,
+            OrderRepository orderRepo,
+            UserRepository userRepo,
             AppDbContext context
             )
         {
             // Базовые
             registry.Register(new EchoCommand());
-            registry.Register(new HelpCommand(registry));
+            registry.Register(new HelpCommand(authService));
             registry.Register(new ExitCommand());
+            registry.Register(new ClearCommand());
+            registry.Register(new MenuCommand(authService));
             registry.Register(new ShowLogsCommand(logger));
             registry.Register(new TestErrorCommand(logger));
 
@@ -44,27 +47,44 @@ namespace ShopProject.ConsoleCommands
             // User
             registry.Register(new RegisterCommand(userService));
             registry.Register(new ChangeRoleCommand(userService, authService, context));
+            registry.Register(new ProfileCommand(userService, authService));
+            registry.Register(new UsersCommand(userRepo, authService));  
 
             // Cart
             registry.Register(new AddToCartCommand(cartService, authService, productRepo));
-            registry.Register(new RemoveFromCartCommand(authService, cartService));  
+            registry.Register(new RemoveFromCartCommand(authService, cartService));
             registry.Register(new ViewCartCommand(cartService, authService, productRepo));
+            registry.Register(new BuyCartCommand(orderService, authService));
 
             // Favorite
             registry.Register(new ToggleFavoriteCommand(favoriteService, authService));
 
             // Product
-            registry.Register(new GetAllProductsCommand(productService));  
+            registry.Register(new GetAllProductsCommand(productService));
             registry.Register(new SearchProductsCommand(productRepo));
             registry.Register(new GetByCategoryCommand(productRepo));
             registry.Register(new CreateProductCommand(productService, authService));
             registry.Register(new GetForModerateCommand(authService, productService));
             registry.Register(new ApproveProductCommand(productService, authService));
             registry.Register(new DeclineProductCommand(productService, authService));
+            registry.Register(new EditProductCommand(productRepo, authService));  
+            registry.Register(new DeleteProductCommand(productService, productRepo, authService));  
+            registry.Register(new AddDiscountCommand(discountService, productRepo, authService));  
+            registry.Register(new MyProductsCommand(productRepo, authService));
+            
 
             // Order
             registry.Register(new GetUserOrdersCommand(orderService, authService));
+            registry.Register(new ReturnOrderCommand(orderService, authService, orderRepo, userRepo));
+            registry.Register(new ViewOrdersCommand(orderService, authService));
+
+            // Moderator
+            registry.Register(new ViewUserProfileCommand(moderatorService, authService));
+            registry.Register(new ChangeBalanceCommand(moderatorService, authService));
+            registry.Register(new ToggleBlockCommand(moderatorService, authService));
+
+            // Statistic
+            registry.Register(new TopProductsCommand(orderRepo, productRepo, authService));  
         }
-        
     }
 }
