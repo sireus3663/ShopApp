@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.ConsoleCommands.ProductServiceCommand
+namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
 {
     public class GetAllProductsCommand : BaseCommand
     {
@@ -21,7 +21,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
             if(products.Count == 0) { Info("Товаров нет"); return; }
             Info($"Всего товаров {products.Count}");
             Console.WriteLine(new string('-', 60));
-            foreach (var p in products) { Console.WriteLine($"{p.Name, -25} { p.Price,-10} руб. | {p.Category} | {p.Amount} шт."); }
+            foreach (var p in products) { Console.WriteLine($"{p.Id} {p.Name,-25} {p.Price,-10} руб. | {p.Category}"); }
         }
     }
 }

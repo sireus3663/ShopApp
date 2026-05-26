@@ -36,7 +36,7 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
                 var user = userRepo.GetByEmail(args[0]);
                 if (user == null) { Error($"Пользователь {args[0]} не найден"); return; }
                 _userService.ChangeRole(user.Id, newRole);
-                Success($"Роль пользователя {args[0]}изменена на {newRole}");
+                Success($"Роль пользователя {args[0]} изменена на {newRole}");
             }
             catch (Exception ex) { Error(ex.Message); }
         }

@@ -3,6 +3,7 @@ using ShopProject.ConsoleCommands.CartServiceCommand;
 using ShopProject.ConsoleCommands.FavoriteServiceCommand;
 using ShopProject.ConsoleCommands.OrderServiceCommand;
 using ShopProject.ConsoleCommands.ProductServiceCommand;
+using ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand;
 using ShopProject.ConsoleCommands.UserServiceCommand;
 using ShopProject.Db;
 using ShopProject.Services;
@@ -53,9 +54,13 @@ namespace ShopProject.ConsoleCommands
             registry.Register(new ToggleFavoriteCommand(favoriteService, authService));
 
             // Product
-            registry.Register(new GetAllProductsCommand(productService));
+            registry.Register(new GetAllProductsCommand(productService));  
             registry.Register(new SearchProductsCommand(productRepo));
             registry.Register(new GetByCategoryCommand(productRepo));
+            registry.Register(new CreateProductCommand(productService, authService));
+            registry.Register(new GetForModerateCommand(authService, productService));
+            registry.Register(new ApproveProductCommand(productService, authService));
+            registry.Register(new DeclineProductCommand(productService, authService));
 
             // Order
             registry.Register(new GetUserOrdersCommand(orderService, authService));

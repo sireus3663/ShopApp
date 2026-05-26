@@ -20,7 +20,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
             var products = _productRepo.GetByCategory(args[0]);
             if (products.Count == 0) { Info($"Товары в котегории '{args[0]}' не найдено"); return; }
             Info($"Товары в котегории '{args[0]}' : {products.Count}");
-            foreach (var p in products) { Console.WriteLine($"  - {p.Name} | {p.Price} руб."); }
+            foreach (var p in products) { Console.WriteLine($"  - {p.Id} | {p.Name} | {p.Price} руб."); }
         }
     }
 }
