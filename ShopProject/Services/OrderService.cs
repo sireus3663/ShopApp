@@ -41,18 +41,32 @@ namespace ShopProject.Services
             );
             if (currentUser.Balance < totalPrice) { throw new Exception("у пользователя недостаточно денег"); }
             currentUser.Balance -= totalPrice;
-            foreach ( var productInCart in cart )
+            foreach (var productInCart in cart)
             {
+                var product = _productRepository.GetById(productInCart.ProductId);
+
+                if (product == null)
+                    throw new Exception("Товар не найден");
+
+                if (product.Amount < productInCart.Count)
+                    throw new Exception($"Недостаточно товара: {product.Name}");
+
+                product.Amount -= productInCart.Count;
+
+                _productRepository.Update(product);
+
                 Order newOrder = new Order
                 {
                     Id = Guid.NewGuid(),
                     UserId = currentUser.Id,
                     ProductId = productInCart.ProductId,
-                    Price = _discountService.CalculatePrice(_productRepository.GetById(productInCart.ProductId)) * productInCart.Count,
+                    Price = _discountService.CalculatePrice(product) * productInCart.Count,
                     Count = productInCart.Count,
                     CreatedAt = DateTime.UtcNow
                 };
+
                 _orderRepository.Add(newOrder);
+
                 _cartService.DeleteCart(productInCart.Id);
             }
             _userRepository.Update(currentUser);
