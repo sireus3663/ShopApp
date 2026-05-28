@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,8 @@ namespace ShopProject.ConsoleCommands.FavoriteServiceCommand
 
         public override string Name => "favorite";
         public override string Description => "Добавить/Удалить из избранного. Использование: favorite <id товара>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
+
         public ToggleFavoriteCommand(FavoriteService favoriteService, AuthService authService)
         {
             _favoriteService = favoriteService;

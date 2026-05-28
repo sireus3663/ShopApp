@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
 
         public override string Name => "decline";
         public override string Description => "Отклонить товар. Использование: decline <id товара>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
+
         public DeclineProductCommand(ProductService productService, AuthService authService)
         {
             _productService = productService;

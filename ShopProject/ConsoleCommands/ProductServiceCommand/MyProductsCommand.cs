@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
         public override string Name => "my-products";
         public override string Description => "Показать мои товары (продавец)";
+        public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
+
         public MyProductsCommand(ProductRepository productRepo, AuthService authService)
         {
             _productRepo = productRepo;

@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
 
         public override string Name => "view-profile";
         public override string Description => "Просмотр профиля пользователя. Использование: view-profile <email>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ViewUserProfileCommand(ModeratorService moderatorService, AuthService authService)
         {

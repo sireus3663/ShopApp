@@ -12,6 +12,8 @@ namespace ShopProject.ConsoleCommands.AuthServiceCommand
     {
         private readonly AuthService _authService;
         public override string Name => "login";
+        public override bool AvailableForGuest => true;
+
         public override string Description => "Вход. Использование: login <email> <пароль>";
         public LoginCommand(AuthService authService) { _authService = authService; }
         public override void Execute(string[] args)

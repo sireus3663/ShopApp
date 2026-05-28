@@ -24,7 +24,7 @@ namespace ShopProject.ConsoleCommands
             ProductService productService,
             OrderService orderService,
             ModeratorService moderatorService,
-            DiscountService discountService,  
+            DiscountService discountService,
             ProductRepository productRepo,
             OrderRepository orderRepo,
             UserRepository userRepo,
@@ -33,10 +33,10 @@ namespace ShopProject.ConsoleCommands
         {
             // Базовые
             registry.Register(new EchoCommand());
-            registry.Register(new HelpCommand(registry));
+            registry.Register(new HelpCommand(registry, authService)); 
             registry.Register(new ExitCommand());
             registry.Register(new ClearCommand());
-            //registry.Register(new MenuCommand(authService));
+            registry.Register(new MenuCommand(authService, registry));
             registry.Register(new ShowLogsCommand(logger));
             registry.Register(new TestErrorCommand(logger));
 
@@ -58,6 +58,7 @@ namespace ShopProject.ConsoleCommands
 
             // Favorite
             registry.Register(new ToggleFavoriteCommand(favoriteService, authService));
+            registry.Register(new ViewFavoritesCommand(favoriteService, authService, productRepo));
 
             // Product
             registry.Register(new GetAllProductsCommand(productService));

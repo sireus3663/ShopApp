@@ -10,6 +10,7 @@ namespace ShopProject.ConsoleCommands.BasseCommands
     {
         public override string Name => "echo";
         public override string Description => "Повторить текст. Использование: echo <текст>";
+        public override bool AvailableForGuest => true;
 
         public override void Execute(string[] args)
         {

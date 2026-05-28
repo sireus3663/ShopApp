@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 
 using System;
@@ -18,6 +19,7 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
 
         public override string Name => "cart-add";
         public override string Description => "Добавить в корзину. Использование: cart-add <id товара>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 
         public AddToCartCommand(CartService cartService, AuthService authService, ProductRepository productRepo)
         {

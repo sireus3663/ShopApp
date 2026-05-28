@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
         public override string Name => "delete-product";
         public override string Description => "Удалить товар. Использование: delete-product <id>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Admin };
+
         public DeleteProductCommand(ProductService productService, ProductRepository productRepo, AuthService authService)
         {
             _productService = productService;
