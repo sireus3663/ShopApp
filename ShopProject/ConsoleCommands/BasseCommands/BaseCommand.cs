@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.ConsoleCommands
+namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public abstract class BaseCommand : ICommand
     {

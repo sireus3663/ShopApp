@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ShopProject.Services;
 
-namespace ShopProject.ConsoleCommands
+namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class TestErrorCommand : BaseCommand
     {

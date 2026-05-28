@@ -35,7 +35,7 @@ namespace ShopProject.Services
                 .Where(p => !p.IsApproved)
                 .ToList();
         }
-        public Product createProduct(string Name, string Description, decimal Price, string Category, int Amount)
+        public Product createProduct(string Name, string Description, decimal Price, string Category)
         {
             if (string.IsNullOrWhiteSpace(Name) || Name.Length < 3)
                 throw new Exception("Название продукта должно быть не менее 3 символов");
@@ -47,8 +47,6 @@ namespace ShopProject.Services
                 throw new Exception("Цена не может быть больше 10000000");
             if (Math.Round(Price, 2) != Price)
                 throw new Exception("Цена может содержать не более 2 знаков после запятой");
-            if (Amount < 0)
-                throw new Exception("Количество товаров не может быть отрицательным");
             if (string.IsNullOrWhiteSpace(Category))
                 throw new Exception("Категория не может быть пустой");
             if (Category.Length > 50)
@@ -68,7 +66,6 @@ namespace ShopProject.Services
                 Price = Price,
                 SellerId = currentUser.Id,
                 Category = Category,
-                Amount = Amount,
                 IsApproved = false
             };
             _productRepository.Add(newProduct);

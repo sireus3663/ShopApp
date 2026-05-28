@@ -42,6 +42,12 @@ namespace ShopProject.Services
             {
                 throw new Exception("пароль неверный");
             }
+
+            if (temp.IsBlocked)
+            {
+                throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
+            }
+
             _currentUser = temp;
         }
         public void Logout()

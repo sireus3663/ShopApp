@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using ShopProject.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.ConsoleCommands
+namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class HelpCommand : BaseCommand
     {
