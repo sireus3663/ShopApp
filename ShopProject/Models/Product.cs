@@ -19,5 +19,8 @@ public class Product
     public Guid? SellerId { get; set; }
 
     public string Category { get; set; }
+
     public bool IsApproved { get; set; }
+
+    public int Amount { get; set; }
 }
