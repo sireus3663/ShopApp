@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ShopProject.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,17 +12,21 @@ namespace ShopProject.ConsoleCommands.BasseCommands
         public abstract string Name { get; }
         public abstract string Description { get; }
         public abstract void Execute(string[] args);
+        public virtual List<Role> AvailableFor { get; } = new List<Role> { Role.Buyer, Role.Seller, Role.Moderator, Role.Admin };
+
+        public virtual bool AvailableForGuest => false;
 
         protected void Success(string msg)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"[OK] {msg}");
             Console.ResetColor();
-        } 
+        }
+
         protected void Error(string msg)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[ERORR] {msg}");
+            Console.WriteLine($"[ERROR] {msg}");
             Console.ResetColor();
         }
 

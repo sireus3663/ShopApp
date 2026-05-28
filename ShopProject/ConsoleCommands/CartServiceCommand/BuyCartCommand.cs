@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,8 @@ namespace ShopProject.ConsoleCommands
 
         public override string Name => "buy";
         public override string Description => "Оформить покупку всех товаров из корзины";
-        
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer, Role.Seller };
+
         public BuyCartCommand(OrderService orderService, AuthService authService)
         {
             _orderService = orderService;

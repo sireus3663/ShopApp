@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
 
         public override string Name => "users";
         public override string Description => "Показать всех пользователей (только админ)";
+        public override List<Role> AvailableFor => new List<Role> { Role.Admin };
 
         public UsersCommand(UserRepository userRepo, AuthService authService)
         {

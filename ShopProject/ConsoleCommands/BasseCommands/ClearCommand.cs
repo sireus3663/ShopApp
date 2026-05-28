@@ -10,6 +10,7 @@ namespace ShopProject.ConsoleCommands.BasseCommands
     {
         public override string Name => "clear";
         public override string Description => "Очистить консоль";
+        public override bool AvailableForGuest => true;
 
         public override void Execute(string[] args)
         {

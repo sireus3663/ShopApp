@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
         public override string Name => "edit-product";
         public override string Description => "Редактировать товар. Использование: edit-product <id> <price|name|desc|category> <новое_значение>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
+
         public EditProductCommand(ProductRepository productRepo, AuthService authService)
         {
             _productRepo = productRepo;

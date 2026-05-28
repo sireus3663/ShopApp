@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,8 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
 
         public override string Name => "cart-remove";
         public override string Description => "Удалить из корзины. Использование: cart-remove <id товара>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
+
         public RemoveFromCartCommand(AuthService authService, CartService cartService)
         {
             _authService = authService;
