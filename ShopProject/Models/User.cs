@@ -19,4 +19,6 @@ public class User
     public decimal Balance { get; set; }
 
     public Role Role { get; set; }
+
+    public bool IsBlocked { get; set; }
 }
