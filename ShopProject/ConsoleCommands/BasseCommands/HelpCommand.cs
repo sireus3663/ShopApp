@@ -1,4 +1,5 @@
-﻿using ShopProject.Services;
+﻿using Microsoft.Win32;
+using ShopProject.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,20 +10,12 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class HelpCommand : BaseCommand
     {
-        private readonly AuthService _authService;
-
+        private readonly CommandRegistry _registry;
         public override string Name => "help";
         public override string Description => "Показать справку";
 
-        public HelpCommand(AuthService authService)
-        {
-            _authService = authService;
-        }
+        public HelpCommand(CommandRegistry registry) { _registry = registry; }
 
-        public override void Execute(string[] args)
-        {
-            var menuCommand = new MenuCommand(_authService);
-            menuCommand.Execute(args);
-        }
+        public override void Execute(string[] args) { _registry.ShowHelp(); }
     }
 }

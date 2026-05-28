@@ -15,7 +15,7 @@ namespace ShopProject.Services
         }
         public static bool CanSell(Role role)
         {
-            return role == Role.Seller || role == Role.Admin;
+            return role == Role.Seller || role == Role.Admin || role == Role.Moderator;
         }
 
         public static bool CanModerate(Role role)

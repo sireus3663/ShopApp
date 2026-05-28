@@ -33,10 +33,10 @@ namespace ShopProject.ConsoleCommands
         {
             // Базовые
             registry.Register(new EchoCommand());
-            registry.Register(new HelpCommand(authService));
+            registry.Register(new HelpCommand(registry));
             registry.Register(new ExitCommand());
             registry.Register(new ClearCommand());
-            registry.Register(new MenuCommand(authService));
+            //registry.Register(new MenuCommand(authService));
             registry.Register(new ShowLogsCommand(logger));
             registry.Register(new TestErrorCommand(logger));
 

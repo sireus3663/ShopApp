@@ -122,7 +122,7 @@ Console.WriteLine($"  Продавец: {sellerEmail} / {sellerPassword}");
 Console.WriteLine($"  Покупатель: {buyerEmail} / {buyerPassword}");
 Console.WriteLine();
 
-new MenuCommand(authService).Execute(Array.Empty<string>());
+//new MenuCommand(authService).Execute(Array.Empty<string>());
 
 while (true)
 {
