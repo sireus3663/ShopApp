@@ -4,8 +4,39 @@ using ShopProject.Db;
 using ShopProject.Models;
 using ShopProject.Services;
 
-var context = new AppDbContext();
 var logger = new LoggerService();
+var configService = new AppConfigService();
+var startup = new StartupService(logger, configService);
+
+if (startup.IsFirstLaunch())
+{
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine("Первый запуск программы. Подключение к базе данных");
+    Console.ResetColor();
+    logger.Info("Первый запуск приложения");
+}
+else
+{
+    logger.Info("Запуск приложения");
+}
+
+AppDbContext? context = startup.TryConnect();
+
+if (context == null)
+{
+    context = startup.PromptPasswordUntilConnected();
+    if (context == null)
+    {
+        logger.Warning("Пользователь отказался от подключения к БД. Завершение.");
+        Console.WriteLine("Выход из программы.");
+        return;
+    }
+    logger.Info("Подключение к БД установлено после ввода пароля");
+}
+else
+{
+    logger.Info("Подключение к БД установлено");
+}
 
 var userRepo = new UserRepository(context);
 var productRepo = new ProductRepository(context);
@@ -14,7 +45,7 @@ var orderRepo = new OrderRepository(context);
 var favoriteRepo = new FavoriteRepository(context);
 var discountRepo = new DiscountRepository(context);
 
-var authService = new AuthService(context);
+var authService = new AuthService(context, configService);
 var userService = new UserService(context, authService, logger);
 var productService = new ProductService(productRepo, authService);
 var discountService = new DiscountService(discountRepo, authService, productRepo);
@@ -28,7 +59,7 @@ string adminEmail = "admin@shop.com";
 string adminPassword = "Admin123";
 if (!userRepo.Exists(adminEmail))
 {
-    var admin = new User
+    userRepo.Add(new User
     {
         Id = Guid.NewGuid(),
         Name = "Administrator",
@@ -37,21 +68,17 @@ if (!userRepo.Exists(adminEmail))
         Balance = 999999,
         Role = Role.Admin,
         IsBlocked = false
-    };
-    userRepo.Add(admin);
+    });
     Console.WriteLine($"[OK] Создан администратор: {adminEmail} / {adminPassword}");
 }
-else
-{
-    Console.WriteLine($"[i] Администратор уже существует: {adminEmail}");
-}
+else { Console.WriteLine($"[i] Администратор уже существует: {adminEmail}"); }
 
 // Создание тестового модератора
 string moderatorEmail = "moder@shop.com";
 string moderatorPassword = "Moder123";
 if (!userRepo.Exists(moderatorEmail))
 {
-    var moderator = new User
+    userRepo.Add(new User
     {
         Id = Guid.NewGuid(),
         Name = "Moderator",
@@ -60,21 +87,17 @@ if (!userRepo.Exists(moderatorEmail))
         Balance = 10000,
         Role = Role.Moderator,
         IsBlocked = false
-    };
-    userRepo.Add(moderator);
+    });
     Console.WriteLine($"[OK] Создан модератор: {moderatorEmail} / {moderatorPassword}");
 }
-else
-{
-    Console.WriteLine($"[i] Модератор уже существует: {moderatorEmail}");
-}
+else { Console.WriteLine($"[i] Модератор уже существует: {moderatorEmail}"); }
 
 // Создание тестового продавца
 string sellerEmail = "seller@shop.com";
 string sellerPassword = "Seller123";
 if (!userRepo.Exists(sellerEmail))
 {
-    var seller = new User
+    userRepo.Add(new User
     {
         Id = Guid.NewGuid(),
         Name = "Seller",
@@ -83,21 +106,17 @@ if (!userRepo.Exists(sellerEmail))
         Balance = 50000,
         Role = Role.Seller,
         IsBlocked = false
-    };
-    userRepo.Add(seller);
+    });
     Console.WriteLine($"[OK] Создан продавец: {sellerEmail} / {sellerPassword}");
 }
-else
-{
-    Console.WriteLine($"[i] Продавец уже существует: {sellerEmail}");
-}
+else { Console.WriteLine($"[i] Продавец уже существует: {sellerEmail}"); }
 
 // Создание тестового покупателя
 string buyerEmail = "buyer@shop.com";
 string buyerPassword = "Buyer123";
 if (!userRepo.Exists(buyerEmail))
 {
-    var buyer = new User
+    userRepo.Add(new User
     {
         Id = Guid.NewGuid(),
         Name = "Buyer",
@@ -106,23 +125,21 @@ if (!userRepo.Exists(buyerEmail))
         Balance = 10000,
         Role = Role.Buyer,
         IsBlocked = false
-    };
-    userRepo.Add(buyer);
+    });
     Console.WriteLine($"[OK] Создан покупатель: {buyerEmail} / {buyerPassword}");
 }
-else
-{
-    Console.WriteLine($"[i] Покупатель уже существует: {buyerEmail}");
-}
+else { Console.WriteLine($"[i] Покупатель уже существует: {buyerEmail}"); }
 
 var registry = new CommandRegistry(logger);
-CommandInitializer.RegisterAll(registry, logger, authService, userService, cartService, favoriteService, productService, orderService, moderatorService, discountService, productRepo, orderRepo, userRepo, context);
+CommandInitializer.RegisterAll(registry, logger, authService, userService, cartService,
+    favoriteService, productService, orderService, moderatorService, discountService,
+    productRepo, orderRepo, userRepo, context);
 
 Console.WriteLine("\n=== ShopProject ====");
 Console.WriteLine("Тестовые пользователи:");
-Console.WriteLine($"  Админ: {adminEmail} / {adminPassword}");
-Console.WriteLine($"  Модератор: {moderatorEmail} / {moderatorPassword}");
-Console.WriteLine($"  Продавец: {sellerEmail} / {sellerPassword}");
+Console.WriteLine($"  Админ:      {adminEmail} / {adminPassword}");
+Console.WriteLine($"  Модератор:  {moderatorEmail} / {moderatorPassword}");
+Console.WriteLine($"  Продавец:   {sellerEmail} / {sellerPassword}");
 Console.WriteLine($"  Покупатель: {buyerEmail} / {buyerPassword}");
 Console.WriteLine();
 Console.WriteLine("Доступные команды:");
@@ -136,7 +153,9 @@ var menuCommand = new MenuCommand(authService, registry);
 
 while (true)
 {
-    Console.Write("\n> ");
+    var user = authService.currentUser;
+    Console.Write(user != null ? $"\n[{user.Name}]> " : "\n> ");
+
     var input = Console.ReadLine()?.Trim();
     if (string.IsNullOrEmpty(input)) continue;
 
