@@ -20,6 +20,8 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
 
         public override string Name => "changerole";
         public override string Description => "Изменить роль. Использование: changerole <email> <Buyer | Seller | Moderator | Admin>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Admin };
+
         public ChangeRoleCommand(UserService userService, AuthService authService, AppDbContext context)
         {
             _userService = userService;

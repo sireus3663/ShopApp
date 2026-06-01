@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
         public override string Name => "top-products";
         public override string Description => "Топ товаров по продажам (только админ)";
+        public override List<Role> AvailableFor => new List<Role> { Role.Admin };
+
         public TopProductsCommand(OrderRepository orderRepo, ProductRepository productRepo, AuthService authService)
         {
             _orderRepo = orderRepo;

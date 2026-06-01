@@ -26,6 +26,10 @@ namespace ShopProject.ConsoleCommands.BasseCommands
             _commands.TryGetValue(name.ToLower(), out var command);
             return command;
         }
+        public List<ICommand> GetAllCommands()
+        {
+            return _commands.Values.ToList();
+        }
         public void Execute(string commandName, string[] args)
         {
             var command = Get(commandName);

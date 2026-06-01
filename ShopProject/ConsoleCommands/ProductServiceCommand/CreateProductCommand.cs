@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
         public override string Name => "create-product";
         public override string Description => "Создание продукта. Использование: create-product <название> <описание> <цена> <категория>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
+
         public CreateProductCommand(ProductService productService, AuthService authService)
         {
             _productService = productService;

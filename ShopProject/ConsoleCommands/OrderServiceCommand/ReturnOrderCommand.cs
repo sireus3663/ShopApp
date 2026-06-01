@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,8 @@ namespace ShopProject.ConsoleCommands.OrderServiceCommand
 
         public override string Name => "return-product";
         public override string Description => "Вернуть заказ. Использование: return <id заказа>";
-        
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
+
         public ReturnOrderCommand(OrderService orderService, AuthService authService, OrderRepository orderRepo, UserRepository userRepo)
         {
             _orderService = orderService;

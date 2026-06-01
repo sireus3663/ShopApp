@@ -1,5 +1,6 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
 
         public override string Name => "cart-view";
         public override string Description => "Показать корзину";
+        public override List<Role> AvailableFor => new List<Role> { Role.Buyer, Role.Seller };
+
         public ViewCartCommand(CartService cartService, AuthService authService, ProductRepository productRepo)
         {
             _cartService = cartService;
