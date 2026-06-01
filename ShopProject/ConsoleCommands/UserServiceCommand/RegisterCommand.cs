@@ -13,6 +13,8 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
         private readonly UserService _userService;
         public override string Name => "register";
         public override string Description => "Регистрация. Использование: register <имя> <email> <пароль>";
+        public override bool AvailableForGuest => true;
+
         public RegisterCommand(UserService userService) { _userService = userService; }
         public override void Execute(string[] args)
         {

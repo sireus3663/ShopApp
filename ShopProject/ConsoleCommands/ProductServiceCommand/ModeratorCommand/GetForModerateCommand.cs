@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
 
         public override string Name => "moderate";
         public override string Description => "Показать товары на модерации (только модератор/админ)";
+        public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
+
         public GetForModerateCommand(AuthService authService, ProductService productService)
         {
             _authService = authService;

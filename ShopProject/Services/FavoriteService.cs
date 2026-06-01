@@ -16,6 +16,7 @@ namespace ShopProject.Services
             _favoriteRepository = favoriteRepository;
             _authService = authService;
         }
+
         public void ToggleFavorite(Guid productId)
         {
             var existingItem = _favoriteRepository.GetFavoriteItem(_authService.RequireUser().Id, productId);
@@ -44,6 +45,10 @@ namespace ShopProject.Services
             return _favoriteRepository.GetByUser(_authService.RequireUser().Id)
                 .Select(f => f.ProductId)
                 .ToList();
+        }
+        public List<Favorite> GetUserFavorites(Guid userId)
+        {
+            return _favoriteRepository.GetByUser(userId);
         }
     }
 }

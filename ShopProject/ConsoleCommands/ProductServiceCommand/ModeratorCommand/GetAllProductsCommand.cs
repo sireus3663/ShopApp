@@ -15,6 +15,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
 
         public override string Name => "products";
         public override string Description => "Показать все одобренные товары";
+        public override bool AvailableForGuest => true;
+
         public GetAllProductsCommand(ProductService productService) { _productService = productService; }
         public override void Execute(string[] args)
         {

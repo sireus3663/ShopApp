@@ -23,6 +23,7 @@ var favoriteService = new FavoriteService(favoriteRepo, authService);
 var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService);
 var moderatorService = new ModeratorService(userRepo, authService);
 
+// Создание тестового администратора
 string adminEmail = "admin@shop.com";
 string adminPassword = "Admin123";
 if (!userRepo.Exists(adminEmail))
@@ -45,6 +46,7 @@ else
     Console.WriteLine($"[i] Администратор уже существует: {adminEmail}");
 }
 
+// Создание тестового модератора
 string moderatorEmail = "moder@shop.com";
 string moderatorPassword = "Moder123";
 if (!userRepo.Exists(moderatorEmail))
@@ -67,6 +69,7 @@ else
     Console.WriteLine($"[i] Модератор уже существует: {moderatorEmail}");
 }
 
+// Создание тестового продавца
 string sellerEmail = "seller@shop.com";
 string sellerPassword = "Seller123";
 if (!userRepo.Exists(sellerEmail))
@@ -89,6 +92,7 @@ else
     Console.WriteLine($"[i] Продавец уже существует: {sellerEmail}");
 }
 
+// Создание тестового покупателя
 string buyerEmail = "buyer@shop.com";
 string buyerPassword = "Buyer123";
 if (!userRepo.Exists(buyerEmail))
@@ -121,8 +125,14 @@ Console.WriteLine($"  Модератор: {moderatorEmail} / {moderatorPassword}
 Console.WriteLine($"  Продавец: {sellerEmail} / {sellerPassword}");
 Console.WriteLine($"  Покупатель: {buyerEmail} / {buyerPassword}");
 Console.WriteLine();
+Console.WriteLine("Доступные команды:");
+Console.WriteLine("  menu - Показать список доступных команд");
+Console.WriteLine("  help - Показать справку по всем командам");
+Console.WriteLine("  clear - Очистить экран");
+Console.WriteLine("  exit - Выход из программы");
+Console.WriteLine();
 
-//new MenuCommand(authService).Execute(Array.Empty<string>());
+var menuCommand = new MenuCommand(authService, registry);
 
 while (true)
 {
@@ -130,9 +140,42 @@ while (true)
     var input = Console.ReadLine()?.Trim();
     if (string.IsNullOrEmpty(input)) continue;
 
-    var parts = input.Split(' ');
-    var cmdName = parts[0];
-    var cmdArgs = parts.Skip(1).ToArray();
+    if (input.ToLower() == "menu")
+    {
+        menuCommand.Execute(Array.Empty<string>());
+    }
+    else if (input.ToLower() == "help")
+    {
+        registry.ShowHelp();
+    }
+    else if (input.ToLower() == "clear")
+    {
+        Console.Clear();
+        Console.WriteLine("Экран очищен");
+    }
+    else if (input.ToLower() == "exit")
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("До свидания!");
+        Console.ResetColor();
+        break;
+    }
+    else
+    {
+        var parts = input.Split(' ');
+        var cmdName = parts[0];
+        var cmdArgs = parts.Skip(1).ToArray();
 
-    registry.Execute(cmdName, cmdArgs);
+        var command = registry.Get(cmdName);
+        if (command != null)
+        {
+            registry.Execute(cmdName, cmdArgs);
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Команда '{cmdName}' не найдена. Введите 'help' для списка команд.");
+            Console.ResetColor();
+        }
+    }
 }

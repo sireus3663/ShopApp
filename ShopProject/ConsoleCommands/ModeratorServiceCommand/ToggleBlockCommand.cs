@@ -1,4 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.Models;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
 
         public override string Name => "block";
         public override string Description => "Блокировка/разблокировка пользователя. Использование: block <email>";
+        public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ToggleBlockCommand(ModeratorService moderatorService, AuthService authService)
         {

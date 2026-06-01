@@ -10,6 +10,7 @@ namespace ShopProject.ConsoleCommands.BasseCommands
     {
         public override string Name => "exit";
         public override string Description => "Выход из консоли";
+        public override bool AvailableForGuest => true;
 
         public override void Execute(string[] args)
         {
