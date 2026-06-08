@@ -3,6 +3,7 @@ using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
 using ShopProject.Models;
 using ShopProject.Services;
+using static System.Net.Mime.MediaTypeNames;
 
 var logger = new LoggerService();
 var configService = new AppConfigService();
@@ -151,50 +152,9 @@ Console.WriteLine();
 
 var menuCommand = new MenuCommand(authService, registry);
 
-while (true)
-{
-    var user = authService.currentUser;
-    Console.Write(user != null ? $"\n[{user.Name}]> " : "\n> ");
+System.Windows.Forms.Application.EnableVisualStyles();
+System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
 
-    var input = Console.ReadLine()?.Trim();
-    if (string.IsNullOrEmpty(input)) continue;
-
-    if (input.ToLower() == "menu")
-    {
-        menuCommand.Execute(Array.Empty<string>());
-    }
-    else if (input.ToLower() == "help")
-    {
-        registry.ShowHelp();
-    }
-    else if (input.ToLower() == "clear")
-    {
-        Console.Clear();
-        Console.WriteLine("Экран очищен");
-    }
-    else if (input.ToLower() == "exit")
-    {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("До свидания!");
-        Console.ResetColor();
-        break;
-    }
-    else
-    {
-        var parts = input.Split(' ');
-        var cmdName = parts[0];
-        var cmdArgs = parts.Skip(1).ToArray();
-
-        var command = registry.Get(cmdName);
-        if (command != null)
-        {
-            registry.Execute(cmdName, cmdArgs);
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Команда '{cmdName}' не найдена. Введите 'help' для списка команд.");
-            Console.ResetColor();
-        }
-    }
-}
+var loginForm = new ShopProject.Forms.LoginForm(authService, userService);
+if (loginForm.ShowDialog() == DialogResult.OK)
+    System.Windows.Forms.Application.Run(new ShopProject.Forms.MainForm(authService, userService, context));
