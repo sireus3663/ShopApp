@@ -12,8 +12,6 @@ namespace ShopProject.WinForms
     {
         private Panel headerPanel;
         private Panel catalogPanel;
-        private Panel rightSidebar;
-        private Panel contentPanel;
         private FlowLayoutPanel productsFlow;
         private Label userInfoLabel;
         private Label cartCountLabel;
@@ -24,9 +22,11 @@ namespace ShopProject.WinForms
         private ProductRepository _productRepo;
         private CartService _cartService;
         private FavoriteService _favoriteService;
-        private bool isSidebarVisible = false;
         private List<Guid> favoritesList = new List<Guid>();
-        private User _currentUser;
+        private bool isSidebarVisible = false;
+        private Panel cartSidebar;
+        private Panel roleSidebar;
+        private Panel profilePanel;
 
         public MainForm()
         {
@@ -35,6 +35,7 @@ namespace ShopProject.WinForms
             InitializeComponent();
             LoadFavorites();
             LoadProducts();
+            UpdateCartCount();
         }
 
         private void CheckDatabaseConnection()
@@ -64,7 +65,6 @@ namespace ShopProject.WinForms
         {
             var configService = new AppConfigService();
             _authService = new AuthService(_context, configService);
-            _currentUser = _authService.currentUser;
             _productRepo = new ProductRepository(_context);
             var cartRepo = new CartRepository(_context);
             _cartService = new CartService(cartRepo, _authService);
@@ -86,7 +86,7 @@ namespace ShopProject.WinForms
 
         private void InitializeComponent()
         {
-            this.Text = "ShopProject - Маркетплейс";
+            this.Text = "ShopApp";
             this.Size = new Size(1300, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = Color.FromArgb(240, 240, 240);
@@ -95,24 +95,46 @@ namespace ShopProject.WinForms
             headerPanel = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 60,
-                BackColor = Color.FromArgb(45, 45, 48)
+                Height = 65,
+                BackColor = Color.FromArgb(45, 45, 48),
+                Padding = new Padding(10, 0, 10, 0)
             };
 
             var logoLabel = new Label
             {
-                Text = "ShopProject",
+                Text = "ShopApp",
                 ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                Location = new Point(30, 15),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Location = new Point(20, 18),
                 AutoSize = true
             };
             headerPanel.Controls.Add(logoLabel);
 
+            var homeButton = new Button
+            {
+                Text = "Главная",
+                Location = new Point(115, 16),
+                Size = new Size(80, 32),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+            homeButton.Click += (s, e) =>
+            {
+                roleSidebar.Visible = false;
+                cartSidebar.Visible = false;
+                profilePanel.Visible = false;
+                searchBox.Text = "";
+                categoryFilter.SelectedIndex = 0;
+                LoadProducts();
+            };
+            headerPanel.Controls.Add(homeButton);
+
             searchBox = new TextBox
             {
-                Location = new Point(200, 15),
-                Size = new Size(350, 30),
+                Location = new Point(210, 16),
+                Size = new Size(370, 32),
                 BackColor = Color.FromArgb(60, 60, 65),
                 ForeColor = Color.FromArgb(220, 220, 220),
                 Font = new Font("Segoe UI", 11),
@@ -121,61 +143,59 @@ namespace ShopProject.WinForms
             searchBox.TextChanged += (s, e) => LoadProducts();
             headerPanel.Controls.Add(searchBox);
 
-            userInfoLabel = new Label
+            var searchBtn = new Button
             {
-                Text = _authService.currentUser?.Name ?? "Войти",
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 10),
-                Location = new Point(900, 20),
-                AutoSize = true,
-                Cursor = Cursors.Hand
+                Text = "Найти",
+                Location = new Point(590, 15),
+                Size = new Size(70, 34),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
             };
-            userInfoLabel.Click += UserInfoLabel_Click;
-            headerPanel.Controls.Add(userInfoLabel);
-
-            cartCountLabel = new Label
-            {
-                Text = "Корзина (0)",
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 10),
-                Location = new Point(1020, 20),
-                AutoSize = true,
-                Cursor = Cursors.Hand
-            };
-            cartCountLabel.Click += ToggleRightSidebar;
-            headerPanel.Controls.Add(cartCountLabel);
+            searchBtn.Click += (s, e) => LoadProducts();
+            headerPanel.Controls.Add(searchBtn);
 
             var favLabel = new Label
             {
                 Text = "Избранное",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(960, 20),
+                Location = new Point(850, 24),
                 AutoSize = true,
                 Cursor = Cursors.Hand
             };
             favLabel.Click += (s, e) => ShowFavorites();
             headerPanel.Controls.Add(favLabel);
 
-            var adminLabel = new Label
+            cartCountLabel = new Label
             {
-                Text = "Админ",
+                Text = "Корзина (0)",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(1080, 20),
+                Location = new Point(950, 24),
                 AutoSize = true,
-                Cursor = Cursors.Hand,
-                Visible = _authService.currentUser?.Role == Role.Admin
+                Cursor = Cursors.Hand
             };
-            adminLabel.Click += (s, e) => OpenAdminPanel();
-            headerPanel.Controls.Add(adminLabel);
+            cartCountLabel.Click += ToggleCartSidebar;
+            headerPanel.Controls.Add(cartCountLabel);
+
+            userInfoLabel = new Label
+            {
+                Text = _authService.currentUser?.Name ?? "Вход",
+                ForeColor = Color.FromArgb(200, 200, 200),
+                Font = new Font("Segoe UI", 10),
+                Location = new Point(1060, 24),
+                AutoSize = true,
+                Cursor = Cursors.Hand
+            };
+            userInfoLabel.Click += UserInfoLabel_Click;
+            headerPanel.Controls.Add(userInfoLabel);
 
             var filterPanel = new Panel
             {
                 Dock = DockStyle.Left,
                 Width = 220,
-                BackColor = Color.FromArgb(250, 250, 250),
-                Padding = new Padding(15)
+                BackColor = Color.FromArgb(250, 250, 250)
             };
 
             var filterTitle = new Label
@@ -212,30 +232,80 @@ namespace ShopProject.WinForms
             filterPanel.Controls.Add(categoryFilter);
             LoadCategories();
 
-            rightSidebar = new Panel
+            cartSidebar = new Panel
             {
                 Dock = DockStyle.Right,
-                Width = 300,
+                Width = 350,
                 BackColor = Color.White,
                 Visible = false
             };
 
-            var sidebarHeader = new Panel
+            var cartHeader = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 50,
                 BackColor = Color.FromArgb(45, 45, 48)
             };
-            var sidebarTitle = new Label
+            var cartTitle = new Label
             {
-                Text = "Панель",
+                Text = "Корзина",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 Location = new Point(20, 12),
                 AutoSize = true
             };
-            sidebarHeader.Controls.Add(sidebarTitle);
-            rightSidebar.Controls.Add(sidebarHeader);
+            cartHeader.Controls.Add(cartTitle);
+            cartSidebar.Controls.Add(cartHeader);
+
+            roleSidebar = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 280,
+                BackColor = Color.FromArgb(248, 248, 248),
+                Visible = false
+            };
+
+            var roleHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 50,
+                BackColor = Color.FromArgb(45, 45, 48)
+            };
+            var roleTitle = new Label
+            {
+                Text = "Панель управления",
+                ForeColor = Color.FromArgb(200, 200, 200),
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Location = new Point(20, 12),
+                AutoSize = true
+            };
+            roleHeader.Controls.Add(roleTitle);
+            roleSidebar.Controls.Add(roleHeader);
+
+            profilePanel = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 350,
+                BackColor = Color.White,
+                Visible = false
+            };
+
+            var profileHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 50,
+                BackColor = Color.FromArgb(45, 45, 48)
+            };
+            var profileTitle = new Label
+            {
+                Text = "Мой профиль",
+                ForeColor = Color.FromArgb(200, 200, 200),
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Location = new Point(20, 12),
+                AutoSize = true
+            };
+            profileHeader.Controls.Add(profileTitle);
+            profilePanel.Controls.Add(profileHeader);
 
             catalogPanel = new Panel
             {
@@ -254,12 +324,13 @@ namespace ShopProject.WinForms
             catalogPanel.Controls.Add(productsFlow);
 
             this.Controls.Add(catalogPanel);
-            this.Controls.Add(rightSidebar);
+            this.Controls.Add(profilePanel);
+            this.Controls.Add(roleSidebar);
+            this.Controls.Add(cartSidebar);
             this.Controls.Add(filterPanel);
             this.Controls.Add(headerPanel);
 
-            UpdateCartCount();
-            UpdateRightSidebarContent();
+            UpdateRoleSidebarContent();
         }
 
         private void LoadCategories()
@@ -313,7 +384,6 @@ namespace ShopProject.WinForms
                         Text = "Товары не найдены",
                         ForeColor = Color.Gray,
                         Font = new Font("Segoe UI", 14),
-                        Location = new Point(400, 200),
                         AutoSize = true
                     };
                     productsFlow.Controls.Add(emptyLabel);
@@ -344,10 +414,10 @@ namespace ShopProject.WinForms
             };
             var imageLabel = new Label
             {
-                Text = "Изображение",
-                Font = new Font("Segoe UI", 10),
+                Text = "Товар",
+                Font = new Font("Segoe UI", 12),
                 ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(70, 65),
+                Location = new Point(85, 65),
                 AutoSize = true
             };
             imageBox.Controls.Add(imageLabel);
@@ -393,7 +463,7 @@ namespace ShopProject.WinForms
                 Location = new Point(115, 255),
                 Size = new Size(95, 32),
                 BackColor = Color.White,
-                ForeColor = isFavorite ? Color.FromArgb(180, 100, 100) : Color.FromArgb(100, 100, 100),
+                ForeColor = isFavorite ? Color.FromArgb(200, 50, 50) : Color.FromArgb(120, 120, 120),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 8)
             };
@@ -438,13 +508,13 @@ namespace ShopProject.WinForms
                 {
                     favoritesList.Remove(productId);
                     favButton.Text = "В избранное";
-                    favButton.ForeColor = Color.FromArgb(100, 100, 100);
+                    favButton.ForeColor = Color.FromArgb(120, 120, 120);
                 }
                 else
                 {
                     favoritesList.Add(productId);
                     favButton.Text = "В избранном";
-                    favButton.ForeColor = Color.FromArgb(180, 100, 100);
+                    favButton.ForeColor = Color.FromArgb(200, 50, 50);
                 }
             }
             catch (Exception ex)
@@ -457,7 +527,7 @@ namespace ShopProject.WinForms
         {
             try
             {
-                if (_authService.currentUser != null)
+                if (_authService.currentUser != null && _cartService != null)
                 {
                     var cart = _cartService.GetCurrentUserCart();
                     cartCountLabel.Text = $"Корзина ({cart.Sum(c => c.Count)})";
@@ -470,34 +540,157 @@ namespace ShopProject.WinForms
             catch { }
         }
 
-        private void ToggleRightSidebar(object sender, EventArgs e)
+        private void ToggleCartSidebar(object sender, EventArgs e)
         {
+            roleSidebar.Visible = false;
+            profilePanel.Visible = false;
             isSidebarVisible = !isSidebarVisible;
-            rightSidebar.Visible = isSidebarVisible;
+            cartSidebar.Visible = isSidebarVisible;
             if (isSidebarVisible)
             {
-                UpdateRightSidebarContent();
+                LoadCartContent();
             }
         }
 
-        private void UpdateRightSidebarContent()
+        private void LoadCartContent()
         {
-            for (int i = rightSidebar.Controls.Count - 1; i >= 1; i--)
+            for (int i = cartSidebar.Controls.Count - 1; i >= 1; i--)
             {
-                rightSidebar.Controls[i].Dispose();
+                cartSidebar.Controls[i].Dispose();
             }
 
             if (_authService.currentUser == null)
             {
-                var guestLabel = new Label
+                var emptyLabel = new Label
                 {
-                    Text = "Войдите в аккаунт\nдля доступа к функциям",
+                    Text = "Войдите в аккаунт\nчтобы увидеть корзину",
                     ForeColor = Color.Gray,
-                    Location = new Point(50, 100),
+                    Location = new Point(80, 150),
                     Size = new Size(200, 50),
                     TextAlign = ContentAlignment.MiddleCenter
                 };
-                rightSidebar.Controls.Add(guestLabel);
+                cartSidebar.Controls.Add(emptyLabel);
+                return;
+            }
+
+            var cartItems = _cartService.GetCurrentUserCart();
+            if (cartItems.Count == 0)
+            {
+                var emptyLabel = new Label
+                {
+                    Text = "Корзина пуста",
+                    ForeColor = Color.Gray,
+                    Location = new Point(120, 150),
+                    Size = new Size(150, 30),
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+                cartSidebar.Controls.Add(emptyLabel);
+                return;
+            }
+
+            int y = 70;
+            decimal total = 0;
+
+            foreach (var item in cartItems)
+            {
+                var product = _productRepo.GetById(item.ProductId);
+                if (product == null) continue;
+
+                decimal itemTotal = product.Price * item.Count;
+                total += itemTotal;
+
+                var itemPanel = new Panel
+                {
+                    Location = new Point(10, y),
+                    Size = new Size(330, 70),
+                    BackColor = Color.FromArgb(250, 250, 250),
+                    BorderStyle = BorderStyle.FixedSingle
+                };
+
+                var nameLabel = new Label
+                {
+                    Text = product.Name.Length > 25 ? product.Name.Substring(0, 22) + "..." : product.Name,
+                    Location = new Point(10, 10),
+                    Size = new Size(200, 20),
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(60, 60, 60)
+                };
+                itemPanel.Controls.Add(nameLabel);
+
+                var priceLabel = new Label
+                {
+                    Text = $"{product.Price:N0} руб. x {item.Count} = {itemTotal:N0} руб.",
+                    Location = new Point(10, 35),
+                    Size = new Size(250, 20),
+                    Font = new Font("Segoe UI", 8),
+                    ForeColor = Color.FromArgb(100, 100, 100)
+                };
+                itemPanel.Controls.Add(priceLabel);
+
+                var removeBtn = new Button
+                {
+                    Text = "Удалить",
+                    Location = new Point(290, 20),
+                    Size = new Size(40, 30),
+                    BackColor = Color.FromArgb(200, 100, 100),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 8)
+                };
+                removeBtn.Click += (s, e) => RemoveFromCart(item.ProductId);
+                itemPanel.Controls.Add(removeBtn);
+
+                cartSidebar.Controls.Add(itemPanel);
+                y += 80;
+            }
+
+            var totalLabel = new Label
+            {
+                Text = $"Итого: {total:N0} руб.",
+                Location = new Point(20, y + 10),
+                Size = new Size(200, 30),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60)
+            };
+            cartSidebar.Controls.Add(totalLabel);
+
+            var buyButton = new Button
+            {
+                Text = "Оформить заказ",
+                Location = new Point(20, y + 50),
+                Size = new Size(310, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10)
+            };
+            buyButton.Click += (s, e) => MessageBox.Show("Функция оформления заказа в разработке", "Информация");
+            cartSidebar.Controls.Add(buyButton);
+        }
+
+        private void RemoveFromCart(Guid productId)
+        {
+            try
+            {
+                _cartService.RemoveFromCart(productId);
+                UpdateCartCount();
+                LoadCartContent();
+            }
+            catch (Exception ex)
+            {
+                ErrorForm.Show(ex.Message, ex);
+            }
+        }
+
+        private void UpdateRoleSidebarContent()
+        {
+            for (int i = roleSidebar.Controls.Count - 1; i >= 1; i--)
+            {
+                roleSidebar.Controls[i].Dispose();
+            }
+
+            if (_authService.currentUser == null)
+            {
                 return;
             }
 
@@ -506,45 +699,53 @@ namespace ShopProject.WinForms
 
             if (role == Role.Buyer)
             {
-                AddSidebarButton("Мои заказы", y, () => MessageBox.Show("Список заказов", "Заказы"));
-                y += 50;
-                AddSidebarButton("Профиль", y, () => ShowProfile());
+                AddRoleButton("Мои заказы", y, () => MessageBox.Show("Список заказов", "Заказы"));
+                y += 55;
+                AddRoleButton("Профиль", y, () => ShowProfilePanel());
             }
             else if (role == Role.Seller)
             {
-                AddSidebarButton("Мои товары", y, () => ShowMyProducts());
-                y += 50;
-                AddSidebarButton("Создать товар", y, () => OpenCreateProductForm());
-                y += 50;
-                AddSidebarButton("Статистика продаж", y, () => MessageBox.Show("Статистика продаж", "Статистика"));
+                AddRoleButton("Мои товары", y, () => ShowMyProducts());
+                y += 55;
+                AddRoleButton("Создать товар", y, () => OpenCreateProductForm());
+                y += 55;
+                AddRoleButton("Статистика", y, () => MessageBox.Show("Статистика продаж", "Статистика"));
+                y += 55;
+                AddRoleButton("Профиль", y, () => ShowProfilePanel());
             }
             else if (role == Role.Moderator)
             {
-                AddSidebarButton("Модерация товаров", y, () => OpenModerationPanel());
-                y += 50;
-                AddSidebarButton("Список жалоб", y, () => MessageBox.Show("Список жалоб", "Модерация"));
+                AddRoleButton("Модерация", y, () => OpenModerationPanel());
+                y += 55;
+                AddRoleButton("Список жалоб", y, () => MessageBox.Show("Список жалоб", "Модерация"));
+                y += 55;
+                AddRoleButton("Профиль", y, () => ShowProfilePanel());
             }
             else if (role == Role.Admin)
             {
-                AddSidebarButton("Управление пользователями", y, () => OpenUserManagement());
-                y += 50;
-                AddSidebarButton("Модерация товаров", y, () => OpenModerationPanel());
-                y += 50;
-                AddSidebarButton("Статистика", y, () => OpenStatistics());
-                y += 50;
-                AddSidebarButton("Консоль", y, () => OpenConsole());
-                y += 50;
-                AddSidebarButton("Создать товар", y, () => OpenCreateProductForm());
+                AddRoleButton("Управление пользователями", y, () => OpenUserManagement());
+                y += 55;
+                AddRoleButton("Модерация товаров", y, () => OpenModerationPanel());
+                y += 55;
+                AddRoleButton("Статистика", y, () => OpenStatistics());
+                y += 55;
+                AddRoleButton("Консоль", y, () => OpenConsole());
+                y += 55;
+                AddRoleButton("Создать товар", y, () => OpenCreateProductForm());
+                y += 55;
+                AddRoleButton("Профиль", y, () => ShowProfilePanel());
             }
+
+            AddRoleButton("Выйти", y + 20, () => Logout());
         }
 
-        private void AddSidebarButton(string text, int y, Action onClick)
+        private void AddRoleButton(string text, int y, Action onClick)
         {
             var btn = new Button
             {
                 Text = text,
-                Location = new Point(20, y),
-                Size = new Size(260, 40),
+                Location = new Point(15, y),
+                Size = new Size(250, 45),
                 BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -552,7 +753,216 @@ namespace ShopProject.WinForms
                 TextAlign = ContentAlignment.MiddleLeft
             };
             btn.Click += (s, e) => onClick();
-            rightSidebar.Controls.Add(btn);
+            roleSidebar.Controls.Add(btn);
+        }
+
+        private void ShowRoleSidebar()
+        {
+            cartSidebar.Visible = false;
+            profilePanel.Visible = false;
+            roleSidebar.Visible = true;
+            UpdateRoleSidebarContent();
+        }
+
+        private void ShowProfilePanel()
+        {
+            cartSidebar.Visible = false;
+            roleSidebar.Visible = false;
+            profilePanel.Visible = true;
+            LoadProfileContent();
+        }
+
+        private void LoadProfileContent()
+        {
+            for (int i = profilePanel.Controls.Count - 1; i >= 1; i--)
+            {
+                profilePanel.Controls[i].Dispose();
+            }
+
+            if (_authService.currentUser == null)
+            {
+                return;
+            }
+
+            var user = _authService.currentUser;
+            int y = 80;
+
+            var avatarPanel = new Panel
+            {
+                Location = new Point(125, y),
+                Size = new Size(100, 100),
+                BackColor = Color.FromArgb(200, 200, 200),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            var avatarLabel = new Label
+            {
+                Text = user.Name.Substring(0, 1).ToUpper(),
+                Font = new Font("Segoe UI", 36, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(35, 25),
+                AutoSize = true
+            };
+            avatarPanel.Controls.Add(avatarLabel);
+            profilePanel.Controls.Add(avatarPanel);
+            y += 110;
+
+            var nameLabel = new Label
+            {
+                Text = user.Name,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Location = new Point(90, y),
+                Size = new Size(200, 35),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            profilePanel.Controls.Add(nameLabel);
+            y += 45;
+
+            var roleLabel = new Label
+            {
+                Text = $"Роль: {user.Role}",
+                Font = new Font("Segoe UI", 12),
+                ForeColor = Color.FromArgb(100, 100, 100),
+                Location = new Point(30, y),
+                Size = new Size(290, 30)
+            };
+            profilePanel.Controls.Add(roleLabel);
+            y += 35;
+
+            var emailLabel = new Label
+            {
+                Text = $"Email: {user.Email}",
+                Font = new Font("Segoe UI", 12),
+                ForeColor = Color.FromArgb(100, 100, 100),
+                Location = new Point(30, y),
+                Size = new Size(290, 30)
+            };
+            profilePanel.Controls.Add(emailLabel);
+            y += 35;
+
+            var balanceLabel = new Label
+            {
+                Text = $"Баланс: {user.Balance:N0} руб.",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(80, 120, 80),
+                Location = new Point(30, y),
+                Size = new Size(290, 30)
+            };
+            profilePanel.Controls.Add(balanceLabel);
+            y += 35;
+
+            var statusLabel = new Label
+            {
+                Text = $"Статус: {(user.IsBlocked ? "Заблокирован" : "Активен")}",
+                Font = new Font("Segoe UI", 12),
+                ForeColor = user.IsBlocked ? Color.FromArgb(200, 80, 80) : Color.FromArgb(80, 120, 80),
+                Location = new Point(30, y),
+                Size = new Size(290, 30)
+            };
+            profilePanel.Controls.Add(statusLabel);
+            y += 50;
+
+            var separator = new Label
+            {
+                Text = new string('-', 30),
+                ForeColor = Color.FromArgb(200, 200, 200),
+                Location = new Point(30, y),
+                Size = new Size(290, 20),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            profilePanel.Controls.Add(separator);
+            y += 30;
+
+            var ordersBtn = new Button
+            {
+                Text = "Мои заказы",
+                Location = new Point(30, y),
+                Size = new Size(290, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10)
+            };
+            ordersBtn.Click += (s, e) => MessageBox.Show("Список заказов", "Заказы");
+            profilePanel.Controls.Add(ordersBtn);
+            y += 50;
+
+            if (user.Role == Role.Seller)
+            {
+                var myProductsBtn = new Button
+                {
+                    Text = "Мои товары",
+                    Location = new Point(30, y),
+                    Size = new Size(290, 40),
+                    BackColor = Color.FromArgb(80, 80, 85),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10)
+                };
+                myProductsBtn.Click += (s, e) => ShowMyProducts();
+                profilePanel.Controls.Add(myProductsBtn);
+                y += 50;
+            }
+
+            if (user.Role == Role.Moderator || user.Role == Role.Admin)
+            {
+                var moderationBtn = new Button
+                {
+                    Text = "Модерация",
+                    Location = new Point(30, y),
+                    Size = new Size(290, 40),
+                    BackColor = Color.FromArgb(80, 80, 85),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10)
+                };
+                moderationBtn.Click += (s, e) => OpenModerationPanel();
+                profilePanel.Controls.Add(moderationBtn);
+                y += 50;
+            }
+
+            if (user.Role == Role.Admin)
+            {
+                var adminBtn = new Button
+                {
+                    Text = "Админ панель",
+                    Location = new Point(30, y),
+                    Size = new Size(290, 40),
+                    BackColor = Color.FromArgb(200, 80, 80),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10)
+                };
+                adminBtn.Click += (s, e) => OpenUserManagement();
+                profilePanel.Controls.Add(adminBtn);
+                y += 50;
+            }
+
+            var logoutBtn = new Button
+            {
+                Text = "Выйти из аккаунта",
+                Location = new Point(30, y + 20),
+                Size = new Size(290, 40),
+                BackColor = Color.FromArgb(180, 100, 100),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10)
+            };
+            logoutBtn.Click += (s, e) => Logout();
+            profilePanel.Controls.Add(logoutBtn);
+
+            var closeBtn = new Button
+            {
+                Text = "Закрыть",
+                Location = new Point(30, y + 70),
+                Size = new Size(290, 40),
+                BackColor = Color.FromArgb(180, 180, 180),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10)
+            };
+            closeBtn.Click += (s, e) => profilePanel.Visible = false;
+            profilePanel.Controls.Add(closeBtn);
         }
 
         private void ShowMyProducts()
@@ -646,6 +1056,9 @@ namespace ShopProject.WinForms
 
         private void ShowFavorites()
         {
+            roleSidebar.Visible = false;
+            cartSidebar.Visible = false;
+            profilePanel.Visible = false;
             productsFlow.Controls.Clear();
 
             try
@@ -653,6 +1066,7 @@ namespace ShopProject.WinForms
                 if (_authService.currentUser == null)
                 {
                     MessageBox.Show("Войдите в аккаунт", "Требуется авторизация");
+                    LoadProducts();
                     return;
                 }
 
@@ -675,7 +1089,6 @@ namespace ShopProject.WinForms
                         Text = "Избранное пусто",
                         ForeColor = Color.Gray,
                         Font = new Font("Segoe UI", 14),
-                        Location = new Point(400, 200),
                         AutoSize = true
                     };
                     productsFlow.Controls.Add(emptyLabel);
@@ -687,23 +1100,6 @@ namespace ShopProject.WinForms
             }
         }
 
-        private void ShowProfile()
-        {
-            var user = _authService.currentUser;
-            MessageBox.Show($"Профиль:" +
-                $"\nИмя: {user.Name}" +
-                $"\nEmail: {user.Email}" +
-                $"\nРоль: {user.Role}" +
-                $"\nБаланс: {user.Balance:N0} руб.",
-                "Мой профиль");
-        }
-
-        private void OpenAdminPanel()
-        {
-            var adminForm = new AdminPanelForm(_context, _authService.currentUser);
-            adminForm.ShowDialog();
-        }
-
         private void UserInfoLabel_Click(object sender, EventArgs e)
         {
             if (_authService.currentUser == null)
@@ -712,12 +1108,7 @@ namespace ShopProject.WinForms
             }
             else
             {
-                var menu = new ContextMenuStrip();
-                menu.Items.Add($"Профиль: {_authService.currentUser.Name}", null, (s, ev) => ShowProfile());
-                menu.Items.Add($"Баланс: {_authService.currentUser.Balance:N0} руб.", null, null);
-                menu.Items.Add("-");
-                menu.Items.Add("Выйти", null, (s, ev) => Logout());
-                menu.Show(userInfoLabel, new Point(0, userInfoLabel.Height));
+                ShowProfilePanel();
             }
         }
 
@@ -725,75 +1116,98 @@ namespace ShopProject.WinForms
         {
             var loginForm = new Form
             {
-                Text = "Вход",
-                Size = new Size(350, 220),
+                Text = "Вход / Регистрация",
+                Size = new Size(400, 350),
                 StartPosition = FormStartPosition.CenterParent,
                 BackColor = Color.FromArgb(240, 240, 240),
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false
             };
 
-            var lblEmail = new Label 
-            { 
-                Text = "Email:",
-                Location = new Point(30, 30),
-                Size = new Size(80, 25),
-                ForeColor = Color.FromArgb(60, 60, 60) 
+            var tabControl = new TabControl
+            {
+                Location = new Point(20, 20),
+                Size = new Size(340, 250)
             };
-            var txtEmail = new TextBox 
-            { 
-                Location = new Point(120, 30),
+
+            var loginPage = new TabPage("Вход");
+            var txtEmail = new TextBox
+            {
+                Location = new Point(100, 30),
                 Size = new Size(180, 25),
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(60, 60, 60) 
+                BackColor = Color.White
             };
-
-            var lblPassword = new Label 
-            { 
-                Text = "Пароль:",
-                Location = new Point(30, 70),
-                Size = new Size(80, 25), 
-                ForeColor = Color.FromArgb(60, 60, 60) 
+            var txtPassword = new TextBox
+            {
+                Location = new Point(100, 70),
+                Size = new Size(180, 25),
+                PasswordChar = '*',
+                BackColor = Color.White
             };
-            var txtPassword = new TextBox 
-            { 
-                Location = new Point(120, 70),
-                Size = new Size(180, 25), 
-                BackColor = Color.White, 
-                ForeColor = Color.FromArgb(60, 60, 60), 
-                PasswordChar = '*' 
-            };
-
-            var btnOk = new Button 
-            { 
+            var btnLogin = new Button
+            {
                 Text = "Войти",
-                Location = new Point(120, 120),
-                Size = new Size(80, 30), 
+                Location = new Point(100, 110),
+                Size = new Size(100, 30),
                 BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat };
-            var btnCancel = new Button 
-            { 
-                Text = "Отмена",
-                Location = new Point(210, 120),
-                Size = new Size(80, 30), 
-                BackColor = Color.FromArgb(180, 180, 180), 
-                ForeColor = Color.White, 
-                FlatStyle = FlatStyle.Flat 
+                FlatStyle = FlatStyle.Flat
             };
 
-            btnOk.Click += (s, ev) =>
+            loginPage.Controls.Add(new Label { Text = "Email:", Location = new Point(30, 33), Size = new Size(60, 25), ForeColor = Color.FromArgb(60, 60, 60) });
+            loginPage.Controls.Add(txtEmail);
+            loginPage.Controls.Add(new Label { Text = "Пароль:", Location = new Point(30, 73), Size = new Size(60, 25), ForeColor = Color.FromArgb(60, 60, 60) });
+            loginPage.Controls.Add(txtPassword);
+            loginPage.Controls.Add(btnLogin);
+
+            var registerPage = new TabPage("Регистрация");
+            var txtRegName = new TextBox
+            {
+                Location = new Point(120, 30),
+                Size = new Size(160, 25),
+                BackColor = Color.White
+            };
+            var txtRegEmail = new TextBox
+            {
+                Location = new Point(120, 70),
+                Size = new Size(160, 25),
+                BackColor = Color.White
+            };
+            var txtRegPassword = new TextBox
+            {
+                Location = new Point(120, 110),
+                Size = new Size(160, 25),
+                PasswordChar = '*',
+                BackColor = Color.White
+            };
+            var btnRegister = new Button
+            {
+                Text = "Зарегистрироваться",
+                Location = new Point(120, 150),
+                Size = new Size(160, 30),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+
+            registerPage.Controls.Add(new Label { Text = "Имя:", Location = new Point(40, 33), Size = new Size(70, 25), ForeColor = Color.FromArgb(60, 60, 60) });
+            registerPage.Controls.Add(txtRegName);
+            registerPage.Controls.Add(new Label { Text = "Email:", Location = new Point(40, 73), Size = new Size(70, 25), ForeColor = Color.FromArgb(60, 60, 60) });
+            registerPage.Controls.Add(txtRegEmail);
+            registerPage.Controls.Add(new Label { Text = "Пароль:", Location = new Point(40, 113), Size = new Size(70, 25), ForeColor = Color.FromArgb(60, 60, 60) });
+            registerPage.Controls.Add(txtRegPassword);
+            registerPage.Controls.Add(btnRegister);
+
+            tabControl.Controls.Add(loginPage);
+            tabControl.Controls.Add(registerPage);
+            loginForm.Controls.Add(tabControl);
+
+            btnLogin.Click += (s, ev) =>
             {
                 try
                 {
                     _authService.Login(txtEmail.Text, txtPassword.Text);
-                    userInfoLabel.Text = _authService.currentUser.Name;
-                    _currentUser = _authService.currentUser;
-                    loginForm.Close();
-                    LoadFavorites();
-                    LoadProducts();
-                    UpdateCartCount();
-                    UpdateRightSidebarContent();
+                    UpdateUIAfterLogin(loginForm);
                 }
                 catch (Exception ex)
                 {
@@ -801,26 +1215,46 @@ namespace ShopProject.WinForms
                 }
             };
 
-            btnCancel.Click += (s, ev) => loginForm.Close();
-
-            loginForm.Controls.Add(lblEmail);
-            loginForm.Controls.Add(txtEmail);
-            loginForm.Controls.Add(lblPassword);
-            loginForm.Controls.Add(txtPassword);
-            loginForm.Controls.Add(btnOk);
-            loginForm.Controls.Add(btnCancel);
+            btnRegister.Click += (s, ev) =>
+            {
+                try
+                {
+                    var userService = new UserService(_context, _authService, new LoggerService());
+                    var newUser = userService.Register(txtRegName.Text, txtRegEmail.Text, txtRegPassword.Text);
+                    MessageBox.Show($"Пользователь {newUser.Name} зарегистрирован! Теперь войдите.", "Успешно");
+                    txtEmail.Text = txtRegEmail.Text;
+                    tabControl.SelectedTab = loginPage;
+                }
+                catch (Exception ex)
+                {
+                    ErrorForm.Show(ex.Message, ex);
+                }
+            };
 
             loginForm.ShowDialog();
+        }
+
+        private void UpdateUIAfterLogin(Form loginForm)
+        {
+            userInfoLabel.Text = _authService.currentUser.Name;
+            loginForm.Close();
+            LoadFavorites();
+            LoadProducts();
+            UpdateCartCount();
+            UpdateRoleSidebarContent();
+            MessageBox.Show($"Добро пожаловать, {_authService.currentUser.Name}!", "Успешный вход");
         }
 
         private void Logout()
         {
             _authService.Logout();
-            userInfoLabel.Text = "Войти";
+            userInfoLabel.Text = "Вход";
+            roleSidebar.Visible = false;
+            cartSidebar.Visible = false;
+            profilePanel.Visible = false;
             favoritesList.Clear();
             LoadProducts();
             UpdateCartCount();
-            UpdateRightSidebarContent();
         }
     }
 }
