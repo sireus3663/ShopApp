@@ -27,7 +27,7 @@ namespace ShopProject.WinForms
             this.Text = "Подключение к базе данных";
             this.Size = new Size(450, 400);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.FromArgb(32, 32, 32);
+            this.BackColor = Color.FromArgb(240, 240, 240);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
@@ -61,7 +61,7 @@ namespace ShopProject.WinForms
             {
                 Location = new Point(left, y),
                 Size = new Size(350, 40),
-                ForeColor = Color.Yellow,
+                ForeColor = Color.FromArgb(180, 100, 100),
                 Text = "Введите данные для подключения"
             };
             this.Controls.Add(lblStatus);
@@ -72,7 +72,7 @@ namespace ShopProject.WinForms
                 Text = "Подключиться",
                 Location = new Point(left, y),
                 Size = new Size(120, 35),
-                BackColor = Color.FromArgb(0, 120, 215),
+                BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
@@ -83,7 +83,7 @@ namespace ShopProject.WinForms
                 Text = "Отмена",
                 Location = new Point(left + 140, y),
                 Size = new Size(120, 35),
-                BackColor = Color.FromArgb(64, 64, 64),
+                BackColor = Color.FromArgb(180, 180, 180),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
@@ -100,7 +100,7 @@ namespace ShopProject.WinForms
                 Text = text,
                 Location = new Point(x, y),
                 Size = new Size(100, 25),
-                ForeColor = Color.White
+                ForeColor = Color.FromArgb(60, 60, 60)
             };
             this.Controls.Add(label);
         }
@@ -112,8 +112,8 @@ namespace ShopProject.WinForms
                 Text = defaultValue,
                 Location = new Point(x, y),
                 Size = new Size(width, 30),
-                BackColor = Color.FromArgb(64, 64, 64),
-                ForeColor = Color.White,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
                 BorderStyle = BorderStyle.FixedSingle
             };
             this.Controls.Add(box);
@@ -126,7 +126,7 @@ namespace ShopProject.WinForms
                 txtHost.Text, txtPort.Text, txtDatabase.Text,
                 txtUsername.Text, txtPassword.Text);
 
-            lblStatus.ForeColor = Color.Yellow;
+            lblStatus.ForeColor = Color.FromArgb(180, 150, 50);
             lblStatus.Text = "Подключение...";
             btnConnect.Enabled = false;
 
@@ -137,7 +137,7 @@ namespace ShopProject.WinForms
 
             if (ConnectedContext != null)
             {
-                lblStatus.ForeColor = Color.Green;
+                lblStatus.ForeColor = Color.FromArgb(80, 120, 80);
                 lblStatus.Text = "Подключено успешно!";
                 await Task.Delay(500);
                 this.DialogResult = DialogResult.OK;
@@ -145,7 +145,7 @@ namespace ShopProject.WinForms
             }
             else
             {
-                lblStatus.ForeColor = Color.Red;
+                lblStatus.ForeColor = Color.FromArgb(180, 100, 100);
                 lblStatus.Text = "Ошибка подключения! Проверьте данные.";
                 btnConnect.Enabled = true;
             }

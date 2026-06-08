@@ -1,9 +1,10 @@
-﻿using System;
-using System.Diagnostics;
-using System.Drawing;
-using System.Windows.Forms;
-using ShopProject.Db;
+﻿using ShopProject.Db;
 using ShopProject.Models;
+using ShopProject.Services;
+using System;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace ShopProject.WinForms
 {
@@ -11,93 +12,219 @@ namespace ShopProject.WinForms
     {
         private AppDbContext _context;
         private User _currentUser;
+        private DataGridView usersGrid;
+        private TextBox searchBox;
+        private Button refreshBtn;
+        private Button changeRoleBtn;
+        private Button blockBtn;
 
         public AdminPanelForm(AppDbContext context, User currentUser)
         {
             _context = context;
             _currentUser = currentUser;
             InitializeComponent();
+            LoadUsers();
         }
 
         private void InitializeComponent()
         {
-            Text = "Панель Администратора";
-            Size = new Size(800, 600);
-            StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(32, 32, 32);
+            this.Text = "Панель администратора";
+            this.Size = new Size(900, 600);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = Color.FromArgb(240, 240, 240);
 
             var title = new Label
             {
-                Text = $"Администрирование - {_currentUser.Name}",
-                ForeColor = Color.White,
+                Text = $"Управление пользователями - {_currentUser.Name}",
+                ForeColor = Color.FromArgb(60, 60, 60),
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 Location = new Point(20, 20),
                 AutoSize = true
             };
             Controls.Add(title);
 
-            var usersBtn = new Button
+            searchBox = new TextBox
             {
-                Text = "Управление пользователями",
-                Location = new Point(20, 70),
-                Size = new Size(220, 40),
-                BackColor = Color.FromArgb(0, 120, 215),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Location = new Point(20, 60),
+                Size = new Size(200, 30),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60)
             };
-            usersBtn.Click += (s, e) => MessageBox.Show("Экран управления пользователями", "Пользователи");
-            Controls.Add(usersBtn);
+            searchBox.TextChanged += (s, e) => LoadUsers();
+            Controls.Add(searchBox);
 
-            var productsBtn = new Button
+            refreshBtn = new Button
             {
-                Text = "Управление товарами",
-                Location = new Point(20, 130),
-                Size = new Size(220, 40),
-                BackColor = Color.FromArgb(0, 120, 215),
+                Text = "Обновить",
+                Location = new Point(230, 58),
+                Size = new Size(100, 30),
+                BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
-            productsBtn.Click += (s, e) => MessageBox.Show("Экран управления товарами", "Товары");
-            Controls.Add(productsBtn);
+            refreshBtn.Click += (s, e) => LoadUsers();
+            Controls.Add(refreshBtn);
 
-            var consoleBtn = new Button
+            usersGrid = new DataGridView
             {
-                Text = "Открыть консоль",
-                Location = new Point(20, 190),
-                Size = new Size(220, 40),
-                BackColor = Color.FromArgb(80, 80, 80),
+                Location = new Point(20, 100),
+                Size = new Size(850, 400),
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                ReadOnly = true,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            };
+            Controls.Add(usersGrid);
+
+            changeRoleBtn = new Button
+            {
+                Text = "Изменить роль",
+                Location = new Point(20, 520),
+                Size = new Size(150, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
-            consoleBtn.Click += (s, e) =>
+            changeRoleBtn.Click += ChangeRole_Click;
+            Controls.Add(changeRoleBtn);
+
+            blockBtn = new Button
             {
-                try
+                Text = "Блокировка",
+                Location = new Point(180, 520),
+                Size = new Size(150, 40),
+                BackColor = Color.FromArgb(180, 100, 100),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            blockBtn.Click += BlockUser_Click;
+            Controls.Add(blockBtn);
+
+            var closeBtn = new Button
+            {
+                Text = "Закрыть",
+                Location = new Point(770, 520),
+                Size = new Size(100, 40),
+                BackColor = Color.FromArgb(180, 180, 180),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            closeBtn.Click += (s, e) => this.Close();
+            Controls.Add(closeBtn);
+        }
+
+        private void LoadUsers()
+        {
+            try
+            {
+                var repo = new UserRepository(_context);
+                var users = repo.GetAll().AsQueryable();
+
+                string search = searchBox.Text.Trim();
+                if (!string.IsNullOrEmpty(search))
                 {
-                    var psi = new ProcessStartInfo
-                    {
-                        UseShellExecute = true,
-                    };
-                    Process.Start(psi);
+                    users = users.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Не удалось открыть консоль: {ex.Message}", "Ошибка",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            };
-            Controls.Add(consoleBtn);
 
-            var errorBtn = new Button
+                usersGrid.DataSource = users.Select(u => new
+                {
+                    u.Id,
+                    u.Name,
+                    u.Email,
+                    Role = u.Role.ToString(),
+                    Balance = $"{u.Balance:N0} руб.",
+                    Status = u.IsBlocked ? "Заблокирован" : "Активен"
+                }).ToList();
+
+                usersGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            }
+            catch (Exception ex)
             {
-                Text = "Показать ошибку (Тест)",
-                Location = new Point(20, 250),
-                Size = new Size(220, 40),
-                BackColor = Color.FromArgb(200, 50, 50),
+                ErrorForm.Show(ex.Message, ex);
+            }
+        }
+
+        private void ChangeRole_Click(object sender, EventArgs e)
+        {
+            if (usersGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Выберите пользователя", "Ошибка");
+                return;
+            }
+
+            var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
+            var userRepo = new UserRepository(_context);
+            var user = userRepo.GetById(userId);
+
+            if (user == null) return;
+
+            var roleForm = new Form
+            {
+                Text = "Смена роли",
+                Size = new Size(300, 180),
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = Color.FromArgb(240, 240, 240)
+            };
+
+            var comboBox = new ComboBox
+            {
+                Location = new Point(50, 30),
+                Size = new Size(180, 28),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            comboBox.Items.AddRange(Enum.GetNames(typeof(Role)));
+            comboBox.SelectedItem = user.Role.ToString();
+
+            var btnSave = new Button
+            {
+                Text = "Сохранить",
+                Location = new Point(50, 80),
+                Size = new Size(80, 30),
+                BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
-            errorBtn.Click += (s, e) => ErrorDialogForm.ShowError("Тестовая ошибка - описание...");
-            Controls.Add(errorBtn);
+            btnSave.Click += (s, ev) =>
+            {
+                var newRole = (Role)Enum.Parse(typeof(Role), comboBox.SelectedItem.ToString());
+                var userService = new UserService(_context, null, null);
+                userService.ChangeRole(user.Id, newRole);
+                LoadUsers();
+                roleForm.Close();
+                MessageBox.Show("Роль изменена", "Успешно");
+            };
+
+            roleForm.Controls.Add(comboBox);
+            roleForm.Controls.Add(btnSave);
+            roleForm.ShowDialog();
+        }
+
+        private void BlockUser_Click(object sender, EventArgs e)
+        {
+            if (usersGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Выберите пользователя", "Ошибка");
+                return;
+            }
+
+            var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
+            var userRepo = new UserRepository(_context);
+            var user = userRepo.GetById(userId);
+
+            if (user == null || user.Id == _currentUser.Id)
+            {
+                MessageBox.Show("Нельзя заблокировать себя", "Ошибка");
+                return;
+            }
+
+            user.IsBlocked = !user.IsBlocked;
+            userRepo.Update(user);
+            LoadUsers();
+
+            var status = user.IsBlocked ? "заблокирован" : "разблокирован";
+            MessageBox.Show($"Пользователь {user.Name} {status}", "Успешно");
         }
     }
 }

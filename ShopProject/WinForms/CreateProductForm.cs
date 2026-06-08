@@ -10,11 +10,11 @@ namespace ShopProject.WinForms
     {
         private AppDbContext _context;
         private User _author;
-
         private TextBox txtName;
         private TextBox txtPrice;
         private TextBox txtCategory;
-        private Button btnSava;
+        private TextBox txtDescription;
+        private Button btnSave;
 
         public CreateProductForm(AppDbContext context, User author)
         {
@@ -25,105 +25,141 @@ namespace ShopProject.WinForms
 
         private void InitializeComponent()
         {
-            Text = "Создание товара";
-            Size = new Size(450, 350);
-            StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(32, 32, 32);
+            this.Text = "Создание товара";
+            this.Size = new Size(500, 450);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = Color.FromArgb(240, 240, 240);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+
+            int y = 30;
 
             var lblName = new Label
             {
                 Text = "Название:",
-                ForeColor = Color.White,
-                Location = new Point(20, 30),
-                Size = new Size(100, 25),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Location = new Point(30, y),
+                Size = new Size(100, 25)
             };
             txtName = new TextBox
             {
-                Location = new Point(130, 30),
-                Size = new Size(250, 25),
-                BackColor = Color.FromArgb(64, 64, 64),
-                ForeColor = Color.White,
+                Location = new Point(140, y),
+                Size = new Size(300, 30),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
             };
+            this.Controls.Add(lblName);
+            this.Controls.Add(txtName);
+            y += 45;
 
             var lblPrice = new Label
             {
                 Text = "Цена:",
-                ForeColor = Color.White,
-                Location = new Point(20, 80),
-                Size = new Size(100, 25),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Location = new Point(30, y),
+                Size = new Size(100, 25)
             };
             txtPrice = new TextBox
             {
-                Location = new Point(130, 80),
-                Size = new Size(260, 25),
-                BackColor = Color.FromArgb(64, 64, 64),
-                ForeColor = Color.White,
+                Location = new Point(140, y),
+                Size = new Size(300, 30),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
             };
+            this.Controls.Add(lblPrice);
+            this.Controls.Add(txtPrice);
+            y += 45;
 
-            var lblCat = new Label
+            var lblCategory = new Label
             {
                 Text = "Категория:",
-                ForeColor = Color.White,
-                Location = new Point(20, 130),
-                Size = new Size(100, 25),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Location = new Point(30, y),
+                Size = new Size(100, 25)
             };
             txtCategory = new TextBox
             {
-                Location = new Point(130, 130),
-                Size = new Size(260, 25),
-                BackColor = Color.FromArgb(64, 64, 64),
-                ForeColor = Color.White,
+                Location = new Point(140, y),
+                Size = new Size(300, 30),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
             };
+            this.Controls.Add(lblCategory);
+            this.Controls.Add(txtCategory);
+            y += 45;
 
-            btnSava = new Button
+            var lblDescription = new Label
+            {
+                Text = "Описание:",
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Location = new Point(30, y),
+                Size = new Size(100, 25)
+            };
+            txtDescription = new TextBox
+            {
+                Location = new Point(140, y),
+                Size = new Size(300, 100),
+                Multiline = true,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            this.Controls.Add(lblDescription);
+            this.Controls.Add(txtDescription);
+            y += 120;
+
+            btnSave = new Button
             {
                 Text = "Сохранить",
-                Location = new Point(130, 190),
-                Size = new Size(120, 35),
-                BackColor = Color.FromArgb(0, 120, 215),
+                Location = new Point(180, y),
+                Size = new Size(120, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
-            btnSava.Click += BtnSave_Click;
-
-
-            Controls.Add(lblName);
-            Controls.Add(txtName);
-            Controls.Add(lblPrice);
-            Controls.Add(txtPrice);
-            Controls.Add(lblCat);
-            Controls.Add(btnSava);
+            btnSave.Click += BtnSave_Click;
+            this.Controls.Add(btnSave);
         }
 
         private void BtnSave_Click(object sender, EventArgs e)
         {
             try
             {
-                if (string.IsNullOrEmpty(txtName.Text))
+                if (string.IsNullOrWhiteSpace(txtName.Text))
                 {
-                    MessageBox.Show("Укажите название", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Укажите название товара", "Ошибка");
                     return;
                 }
-                decimal price = 0;
-                decimal.TryParse(txtPrice.Text, out price);
+
+                if (!decimal.TryParse(txtPrice.Text, out decimal price) || price <= 0)
+                {
+                    MessageBox.Show("Укажите корректную цену", "Ошибка");
+                    return;
+                }
 
                 var repo = new ProductRepository(_context);
                 var product = new Product
                 {
+                    Id = Guid.NewGuid(),
                     Name = txtName.Text,
                     Price = price,
                     Category = txtCategory.Text,
+                    Description = txtDescription.Text,
                     SellerId = _author?.Id,
                     IsApproved = false,
+                    Amount = 1
                 };
                 repo.Add(product);
 
-                MessageBox.Show("Товар создан (в черновике).", "Создано", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Товар создан и отправлен на модерацию", "Успешно");
                 this.Close();
             }
             catch (Exception ex)
             {
-                ErrorDialogForm.ShowError("Ошибка создания товара: " + ex.Message);
+                ErrorForm.Show(ex.Message, ex);
             }
         }
     }
