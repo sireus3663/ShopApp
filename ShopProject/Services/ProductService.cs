@@ -35,7 +35,7 @@ namespace ShopProject.Services
                 .Where(p => !p.IsApproved)
                 .ToList();
         }
-        public Product createProduct(string Name, string Description, decimal Price, string Category)
+        public Product createProduct(string Name, string Description, decimal Price, string Category, int amount)
         {
             if (string.IsNullOrWhiteSpace(Name) || Name.Length < 3)
                 throw new Exception("Название продукта должно быть не менее 3 символов");
@@ -66,7 +66,9 @@ namespace ShopProject.Services
                 Price = Price,
                 SellerId = currentUser.Id,
                 Category = Category,
-                IsApproved = false
+                IsApproved = false,
+                Amount = amount,
+                ProductImage = null
             };
             _productRepository.Add(newProduct);
             return newProduct;

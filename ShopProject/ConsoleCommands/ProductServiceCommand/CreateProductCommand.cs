@@ -38,9 +38,10 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
 
             if (!decimal.TryParse(args[2], out var price)) { Error("Цена должно быть числом"); return; }
             string cotegory = args[3];
+            int amount = Convert.ToInt32(args[4]);
             try
             {
-                var product = _productService.createProduct(name, description, price, cotegory);
+                var product = _productService.createProduct(name, description, price, cotegory, amount);
                 Success($"Товар '{product.Name}' созда! ID: {product.Id}");
                 Info("Товары ожидает проверки модератором");
             }
