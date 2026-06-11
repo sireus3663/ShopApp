@@ -11,7 +11,17 @@ namespace ShopProject
         {
             if (args.Length > 0 && args[0] == "--console")
             {
-                ConsoleMode.Run();
+                string autoLoginEmail = null;
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "--auto-login" && i + 1 < args.Length)
+                    {
+                        autoLoginEmail = args[i + 1];
+                        break;
+                    }
+                }
+
+                ConsoleMode.Run(autoLoginEmail);
             }
             else
             {

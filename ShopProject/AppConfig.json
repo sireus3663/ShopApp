@@ -1,4 +1,4 @@
 {
   "ConnectionStrings": "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=123456",
-  "CurrentUserId": "2c91d41f-1300-4ee3-8809-dc9ffd933fe8"
+  "CurrentUserId": "bce8a69c-868e-4ee0-acfb-3f08d10fb2d9"
 }

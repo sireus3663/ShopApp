@@ -8,7 +8,7 @@ namespace ShopProject
 {
     public static class ConsoleMode
     {
-        public static void Run()
+        public static void Run(string autoLoginEmail = null) 
         {
             var logger = new LoggerService();
             var configService = new AppConfigService();
@@ -60,6 +60,25 @@ namespace ShopProject
             var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService, context);
             var moderatorService = new ModeratorService(userRepo, authService);
 
+            if (!string.IsNullOrEmpty(autoLoginEmail))
+            {
+                var user = userRepo.GetByEmail(autoLoginEmail);
+                if (user != null)
+                {
+                    authService.LoginById(user);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[OK] Автоматический вход: {user.Name} (Роль: {user.Role})");
+                    Console.ResetColor();
+                    logger.Info($"Авто-вход пользователя {user.Email} из WinForms консоли");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[WARNING] Пользователь {autoLoginEmail} не найден");
+                    Console.ResetColor();
+                }
+            }
+
             string adminEmail = "admin@shop.com";
             string adminPassword = "Admin123";
             if (!userRepo.Exists(adminEmail))
@@ -73,7 +92,7 @@ namespace ShopProject
                     Role = Role.Admin,
                     IsBlocked = false
                 };
-                admin.SetPassword(adminPassword); 
+                admin.SetPassword(adminPassword);
                 userRepo.Add(admin);
                 Console.WriteLine($"[OK] Создан администратор: {adminEmail} / {adminPassword}");
             }
@@ -147,12 +166,6 @@ namespace ShopProject
             Console.WriteLine($"  Модератор:  {moderatorEmail} / {moderatorPassword}");
             Console.WriteLine($"  Продавец:   {sellerEmail} / {sellerPassword}");
             Console.WriteLine($"  Покупатель: {buyerEmail} / {buyerPassword}");
-            Console.WriteLine();
-            Console.WriteLine("Доступные команды:");
-            Console.WriteLine("  menu - Показать список доступных команд");
-            Console.WriteLine("  help - Показать справку по всем командам");
-            Console.WriteLine("  clear - Очистить экран");
-            Console.WriteLine("  exit - Выход из программы");
             Console.WriteLine();
 
             var menuCommand = new MenuCommand(authService, registry);

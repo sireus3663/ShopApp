@@ -3,18 +3,22 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using ShopProject.Models;
+
 
 namespace ShopProject.WinForms
 {
     public class AdminConsoleForm : Form
     {
+        private readonly User _currentUser;
         private RichTextBox consoleOutput;
         private TextBox inputBox;
         private Process _consoleProcess;
         private bool _isRunning = false;
 
-        public AdminConsoleForm()
+        public AdminConsoleForm(User currentUser)  
         {
+            _currentUser = currentUser;
             InitializeComponent();
             StartConsole();
         }
@@ -89,17 +93,38 @@ namespace ShopProject.WinForms
         {
             try
             {
-                var projectPath = Path.GetFullPath(Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    @"..\..\..\"
-                ));
+                string workingDirectory;
+                string fileName;
+                string arguments;
+
+                if (Debugger.IsAttached)
+                {
+                    workingDirectory = Path.GetFullPath(Path.Combine(
+                        AppDomain.CurrentDomain.BaseDirectory,
+                        @"..\..\..\"
+                    ));
+                    fileName = "dotnet";
+                    arguments = $"run -- --console --auto-login \"{_currentUser.Email}\"";
+                }
+                else
+                {
+                    workingDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                    fileName = Path.Combine(workingDirectory, "ShopProject.exe");
+                    arguments = $"--console --auto-login \"{_currentUser.Email}\"";
+
+                    if (!File.Exists(fileName))
+                    {
+                        fileName = "dotnet";
+                        arguments = $"run -- --console --auto-login \"{_currentUser.Email}\"";
+                    }
+                }
 
                 _consoleProcess = new Process();
                 _consoleProcess.StartInfo = new ProcessStartInfo
                 {
-                    FileName = "dotnet",
-                    Arguments = "run -- --console",
-                    WorkingDirectory = projectPath,
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -116,6 +141,8 @@ namespace ShopProject.WinForms
 
                 _isRunning = true;
                 UpdateStatus("Активен", Color.FromArgb(100, 200, 100));
+                AppendOutput($"[СИСТЕМА] Консоль запущена. Пользователь: {_currentUser.Name} ({_currentUser.Role})");
+                AppendOutput("[СИСТЕМА] Введите 'help' для списка команд\n");
             }
             catch (Exception ex)
             {

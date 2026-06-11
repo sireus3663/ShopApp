@@ -110,7 +110,6 @@ namespace ShopProject.WinForms
 
         private void SubscribeEvents()
         {
-            searchBox.TextChanged += async (s, e) => await LoadProductsAsync();
             searchBtn.Click += async (s, e) => await LoadProductsAsync();
             favLabel.Click += (s, e) => ShowFavorites();
             categoryFilter.SelectedIndexChanged += async (s, e) => await LoadProductsAsync();
@@ -157,10 +156,24 @@ namespace ShopProject.WinForms
                 roleSidebar.Visible = false;
                 cartSidebar.Visible = false;
                 profilePanel.Visible = false;
+
                 searchBox.Text = "";
                 categoryFilter.SelectedIndex = 0;
                 _currentPage = 1;
-                await LoadProductsAsync();
+                try
+                {
+                    LoadCategories();
+                    if (_viewModel.IsAuthenticated)
+                    {
+                        _viewModel.LoadFavorites();
+                    }
+                    await LoadProductsAsync();
+                    UpdateCartCount();
+                }
+                catch (Exception ex)
+                {
+                    ErrorForm.Show($"Ошибка обновления: {ex.Message}", ex);
+                }
             };
             headerPanel.Controls.Add(homeButton);
 
@@ -186,40 +199,62 @@ namespace ShopProject.WinForms
             };
             headerPanel.Controls.Add(searchBtn);
 
+            var rightPanel = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 350, 
+                Height = 65,
+                BackColor = Color.Transparent
+            };
+
+            var flowRightPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(0, 18, 20, 0) 
+            };
+
             favLabel = new Label
             {
                 Text = "Избранное",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(850, 24),
-                AutoSize = true,
+                Size = new Size(85, 30),
+                TextAlign = ContentAlignment.MiddleCenter,
                 Cursor = Cursors.Hand
             };
-            headerPanel.Controls.Add(favLabel);
+            favLabel.Click += (s, e) => ShowFavorites();
+            flowRightPanel.Controls.Add(favLabel);
 
             cartCountLabel = new Label
             {
                 Text = "Корзина (0)",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(950, 24),
-                AutoSize = true,
-                Cursor = Cursors.Hand
+                Size = new Size(120, 30), 
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand,
+                AutoSize = false
             };
             cartCountLabel.Click += ToggleCartSidebar;
-            headerPanel.Controls.Add(cartCountLabel);
+            flowRightPanel.Controls.Add(cartCountLabel);
 
             userInfoLabel = new Label
             {
-                Text = "Вход",
+                Text = "👤 Вход",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(1060, 24),
-                AutoSize = true,
-                Cursor = Cursors.Hand
+                Size = new Size(110, 30),  
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand,
+                AutoSize = false  
             };
             userInfoLabel.Click += UserInfoLabel_Click;
-            headerPanel.Controls.Add(userInfoLabel);
+            flowRightPanel.Controls.Add(userInfoLabel);
+
+            rightPanel.Controls.Add(flowRightPanel);
+            headerPanel.Controls.Add(rightPanel);
 
             var filterPanel = new Panel
             {
@@ -353,28 +388,54 @@ namespace ShopProject.WinForms
 
             paginationPanel = CreatePaginationPanel();
 
+            this.Controls.Add(paginationPanel);
             this.Controls.Add(catalogPanel);
             this.Controls.Add(profilePanel);
             this.Controls.Add(roleSidebar);
             this.Controls.Add(cartSidebar);
             this.Controls.Add(filterPanel);
             this.Controls.Add(headerPanel);
-            this.Controls.Add(paginationPanel);
         }
 
         private void LoadCategories()
         {
             try
             {
+                var currentCategory = categoryFilter.SelectedItem?.ToString();
+
                 categoryFilter.Items.Clear();
                 categoryFilter.Items.Add("Все категории");
+
                 foreach (var cat in _viewModel.GetCategories())
                 {
                     categoryFilter.Items.Add(cat);
                 }
-                categoryFilter.SelectedIndex = 0;
+
+                if (!string.IsNullOrEmpty(currentCategory) && categoryFilter.Items.Contains(currentCategory))
+                    categoryFilter.SelectedItem = currentCategory;
+                else
+                    categoryFilter.SelectedIndex = 0;
             }
             catch { }
+        }
+
+        private async Task RefreshAllData()
+        {
+            try
+            {
+                LoadCategories();
+                if (_viewModel.IsAuthenticated)
+                {
+                    _viewModel.LoadFavorites();
+                }
+                _currentPage = 1;
+                await LoadProductsAsync();
+                UpdateCartCount();
+            }
+            catch (Exception ex)
+            {
+                ErrorForm.Show($"Ошибка обновления: {ex.Message}", ex);
+            }
         }
 
         private Panel CreatePaginationPanel()
@@ -382,18 +443,32 @@ namespace ShopProject.WinForms
             var panel = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 55,
+                Height = 50,
                 BackColor = Color.FromArgb(240, 240, 240)
             };
 
+            var tableLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 5,
+                RowCount = 1,
+                Padding = new Padding(10, 5, 10, 5)
+            };
+
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F)); 
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F)); 
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));  
+
             var prevBtn = new Button
             {
-                Text = "< Назад",
-                Location = new Point(20, 10),
-                Size = new Size(90, 32),
+                Text = "◀ Назад",
+                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
             };
             prevBtn.Click += async (s, e) =>
             {
@@ -403,16 +478,26 @@ namespace ShopProject.WinForms
                     await LoadProductsAsync();
                 }
             };
+            tableLayout.Controls.Add(prevBtn, 0, 0);
+
+            pageInfoLabel = new Label
+            {
+                Text = "Страница 1 из 1",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Font = new Font("Segoe UI", 10)
+            };
+            tableLayout.Controls.Add(pageInfoLabel, 1, 0);
 
             var nextBtn = new Button
             {
-                Text = "Вперед >",
-                Location = new Point(panel.Width - 110, 10),
-                Size = new Size(90, 32),
+                Text = "Вперед ▶",
+                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
             };
             nextBtn.Click += async (s, e) =>
             {
@@ -422,21 +507,14 @@ namespace ShopProject.WinForms
                     await LoadProductsAsync();
                 }
             };
-
-            pageInfoLabel = new Label
-            {
-                Text = "Страница 1 из 1",
-                Location = new Point(200, 15),
-                Size = new Size(150, 25),
-                TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(60, 60, 60)
-            };
+            tableLayout.Controls.Add(nextBtn, 2, 0);
 
             var sizeCombo = new ComboBox
             {
-                Location = new Point(360, 12),
-                Size = new Size(60, 25),
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Dock = DockStyle.Fill,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9),
+                BackColor = Color.White
             };
             sizeCombo.Items.AddRange(new object[] { 12, 24, 48, 96 });
             sizeCombo.SelectedItem = _pageSize;
@@ -446,20 +524,19 @@ namespace ShopProject.WinForms
                 _currentPage = 1;
                 await LoadProductsAsync();
             };
+            tableLayout.Controls.Add(sizeCombo, 3, 0);
 
             var perPageLabel = new Label
             {
                 Text = "на странице",
-                Location = new Point(425, 15),
-                Size = new Size(70, 20),
-                ForeColor = Color.FromArgb(60, 60, 60)
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Font = new Font("Segoe UI", 9)
             };
+            tableLayout.Controls.Add(perPageLabel, 4, 0);
 
-            panel.Controls.Add(prevBtn);
-            panel.Controls.Add(nextBtn);
-            panel.Controls.Add(pageInfoLabel);
-            panel.Controls.Add(sizeCombo);
-            panel.Controls.Add(perPageLabel);
+            panel.Controls.Add(tableLayout);
 
             return panel;
         }
@@ -520,7 +597,7 @@ namespace ShopProject.WinForms
             var card = new Panel
             {
                 Width = 220,
-                Height = 320,
+                Height = 380,
                 BackColor = Color.White,
                 Margin = new Padding(10),
                 BorderStyle = BorderStyle.FixedSingle
@@ -566,7 +643,7 @@ namespace ShopProject.WinForms
             var cartButton = new Button
             {
                 Text = "В корзину",
-                Location = new Point(10, 255),
+                Location = new Point(10, 290),
                 Size = new Size(95, 32),
                 BackColor = Color.FromArgb(80, 80, 85),
                 ForeColor = Color.White,
@@ -580,7 +657,7 @@ namespace ShopProject.WinForms
             var favButton = new Button
             {
                 Text = isFavorite ? "В избранном" : "В избранное",
-                Location = new Point(115, 255),
+                Location = new Point(115, 290),
                 Size = new Size(95, 32),
                 BackColor = Color.White,
                 ForeColor = isFavorite ? Color.FromArgb(200, 50, 50) : Color.FromArgb(120, 120, 120),
@@ -1306,7 +1383,8 @@ namespace ShopProject.WinForms
         {
             var form = new CreateProductForm(_context, _viewModel.CurrentUser);
             form.ShowDialog();
-            _ = LoadProductsAsync();
+
+            _ = RefreshAllData();
         }
 
         private void OpenModerationPanel()
@@ -1329,42 +1407,7 @@ namespace ShopProject.WinForms
 
         private void OpenConsole()
         {
-            var consoleForm = new Form
-            {
-                Text = "Консоль",
-                Size = new Size(800, 500),
-                StartPosition = FormStartPosition.CenterParent,
-                BackColor = Color.Black
-            };
-
-            var consoleOutput = new RichTextBox
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.Black,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 10),
-                ReadOnly = true
-            };
-
-            var inputBox = new TextBox
-            {
-                Dock = DockStyle.Bottom,
-                Height = 30,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.White
-            };
-            inputBox.KeyDown += (s, e) =>
-            {
-                if (e.KeyCode == Keys.Enter)
-                {
-                    consoleOutput.AppendText($"> {inputBox.Text}\n");
-                    consoleOutput.AppendText($"Выполнено: {inputBox.Text}\n\n");
-                    inputBox.Clear();
-                }
-            };
-
-            consoleForm.Controls.Add(consoleOutput);
-            consoleForm.Controls.Add(inputBox);
+            var consoleForm = new AdminConsoleForm(_viewModel.CurrentUser);
             consoleForm.ShowDialog();
         }
 

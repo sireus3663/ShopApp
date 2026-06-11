@@ -423,7 +423,7 @@ namespace ShopProject.WinForms
         }
         private void ConsoleBtn_Click(object sender, EventArgs e)
         {
-            var consoleForm = new AdminConsoleForm();
+            var consoleForm = new AdminConsoleForm(_currentUser);
             consoleForm.ShowDialog();
         }
     }
