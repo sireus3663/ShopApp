@@ -5,10 +5,6 @@ using ShopProject.Services;
 
 namespace ShopProject.Forms
 {
-    /// <summary>
-    /// Показывается когда не удалось подключиться к БД.
-    /// Пользователь вводит параметры — форма обновляет AppConfig.json и пробует снова.
-    /// </summary>
     public class DbConnectionForm : Form
     {
         private readonly AppConfigService _configService;
@@ -42,7 +38,6 @@ namespace ShopProject.Forms
                 Size = new Size(360, 30)
             };
 
-            // Ошибка
             lblError = new Label
             {
                 Text = string.IsNullOrEmpty(errorMessage)
@@ -53,8 +48,6 @@ namespace ShopProject.Forms
                 Location = new Point(25, 55),
                 Size = new Size(360, 35)
             };
-
-            // Парсим текущую строку подключения для подстановки значений по умолчанию
             ParseCurrentConnection(out string host, out string port, out string db, out string user);
 
             int y = 100;
@@ -150,8 +143,6 @@ namespace ShopProject.Forms
                     txtUser.Text.Trim(),
                     txtPass.Text
                 );
-
-                // Пробуем подключиться
                 var ctx = new ShopProject.Db.AppDbContext();
                 if (!ctx.Database.CanConnect())
                     throw new Exception("Не удалось подключиться к базе данных.");
