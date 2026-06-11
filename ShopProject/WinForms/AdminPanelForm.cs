@@ -1,10 +1,11 @@
 ﻿using ShopProject.Db;
 using ShopProject.Models;
-using ShopProject.Services;
+using ShopProject.WinForms.ViewModels;
 using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using ShopProject.WinForms;
 
 namespace ShopProject.WinForms
 {
@@ -17,11 +18,18 @@ namespace ShopProject.WinForms
         private Button refreshBtn;
         private Button changeRoleBtn;
         private Button blockBtn;
+        private AdminViewModel _viewModel;
 
         public AdminPanelForm(AppDbContext context, User currentUser)
         {
             _context = context;
             _currentUser = currentUser;
+
+            var userRepo = new UserRepository(context);
+            var orderRepo = new OrderRepository(context);
+            var productRepo = new ProductRepository(context);
+            _viewModel = new AdminViewModel(userRepo, orderRepo, productRepo, currentUser);
+
             InitializeComponent();
             LoadUsers();
         }
@@ -102,10 +110,46 @@ namespace ShopProject.WinForms
             blockBtn.Click += BlockUser_Click;
             Controls.Add(blockBtn);
 
+            var historyBtn = new Button
+            {
+                Text = "История операций",
+                Location = new Point(340, 520),
+                Size = new Size(150, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            historyBtn.Click += HistoryBtn_Click;
+            Controls.Add(historyBtn);
+
+            var changeBalanceBtn = new Button
+            {
+                Text = "Изменить баланс",
+                Location = new Point(500, 520),
+                Size = new Size(150, 40),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            changeBalanceBtn.Click += ChangeBalanceBtn_Click;
+            Controls.Add(changeBalanceBtn);
+
+            var consoleBtn = new Button
+            {
+                Text = "Запустить консоль",
+                Location = new Point(660, 520),
+                Size = new Size(100, 40),
+                BackColor = Color.FromArgb(60, 80, 100),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            consoleBtn.Click += ConsoleBtn_Click;
+            Controls.Add(consoleBtn);
+
             var closeBtn = new Button
             {
                 Text = "Закрыть",
-                Location = new Point(770, 520),
+                Location = new Point(770, 520),  
                 Size = new Size(100, 40),
                 BackColor = Color.FromArgb(180, 180, 180),
                 ForeColor = Color.White,
@@ -119,15 +163,7 @@ namespace ShopProject.WinForms
         {
             try
             {
-                var repo = new UserRepository(_context);
-                var users = repo.GetAll().AsQueryable();
-
-                string search = searchBox.Text.Trim();
-                if (!string.IsNullOrEmpty(search))
-                {
-                    users = users.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
-                }
-
+                var users = _viewModel.SearchUsers(searchBox.Text);
                 usersGrid.DataSource = users.Select(u => new
                 {
                     u.Id,
@@ -137,7 +173,6 @@ namespace ShopProject.WinForms
                     Balance = $"{u.Balance:N0} руб.",
                     Status = u.IsBlocked ? "Заблокирован" : "Активен"
                 }).ToList();
-
                 usersGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             }
             catch (Exception ex)
@@ -155,9 +190,7 @@ namespace ShopProject.WinForms
             }
 
             var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
-            var userRepo = new UserRepository(_context);
-            var user = userRepo.GetById(userId);
-
+            var user = _viewModel.GetUser(userId);
             if (user == null) return;
 
             var roleForm = new Form
@@ -189,8 +222,7 @@ namespace ShopProject.WinForms
             btnSave.Click += (s, ev) =>
             {
                 var newRole = (Role)Enum.Parse(typeof(Role), comboBox.SelectedItem.ToString());
-                var userService = new UserService(_context, null, null);
-                userService.ChangeRole(user.Id, newRole);
+                _viewModel.ChangeUserRole(user.Id, newRole);
                 LoadUsers();
                 roleForm.Close();
                 MessageBox.Show("Роль изменена", "Успешно");
@@ -210,21 +242,189 @@ namespace ShopProject.WinForms
             }
 
             var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
-            var userRepo = new UserRepository(_context);
-            var user = userRepo.GetById(userId);
 
-            if (user == null || user.Id == _currentUser.Id)
+            try
             {
-                MessageBox.Show("Нельзя заблокировать себя", "Ошибка");
+                _viewModel.ToggleUserBlock(userId);
+                LoadUsers();
+                var user = _viewModel.GetUser(userId);
+                var status = user.IsBlocked ? "заблокирован" : "разблокирован";
+                MessageBox.Show($"Пользователь {user.Name} {status}", "Успешно");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка");
+            }
+        }
+
+        private void HistoryBtn_Click(object sender, EventArgs e)
+        {
+            if (usersGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Выберите пользователя", "Ошибка");
                 return;
             }
 
-            user.IsBlocked = !user.IsBlocked;
-            userRepo.Update(user);
-            LoadUsers();
+            var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
+            var user = _viewModel.GetUser(userId);
+            if (user == null) return;
 
-            var status = user.IsBlocked ? "заблокирован" : "разблокирован";
-            MessageBox.Show($"Пользователь {user.Name} {status}", "Успешно");
+            var orders = _viewModel.GetUserOrders(userId);
+            var totalSpent = _viewModel.GetUserTotalSpent(userId);
+
+            var historyForm = new Form
+            {
+                Text = $"История операций - {user.Name}",
+                Size = new Size(800, 500),
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = Color.FromArgb(240, 240, 240)
+            };
+
+            var grid = new DataGridView
+            {
+                Location = new Point(20, 20),
+                Size = new Size(740, 350),
+                BackgroundColor = Color.White,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+            };
+
+            var data = orders.Select(o => new
+            {
+                Дата = o.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+                Название_товара = _viewModel.GetProductName(o.ProductId),
+                Количество = o.Count,
+                Сумма = $"{o.Price:N0} руб.",
+                Статус = "Выполнен"
+            }).ToList();
+
+            grid.DataSource = data;
+
+            var balanceLabel = new Label
+            {
+                Text = $"Текущий баланс: {user.Balance:N0} руб.",
+                Location = new Point(20, 390),
+                Size = new Size(300, 30),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60)
+            };
+
+            var spentLabel = new Label
+            {
+                Text = $"Всего потрачено: {totalSpent:N0} руб.",
+                Location = new Point(20, 420),
+                Size = new Size(300, 30),
+                Font = new Font("Segoe UI", 10),
+                ForeColor = Color.FromArgb(100, 100, 100)
+            };
+
+            var closeBtn = new Button
+            {
+                Text = "Закрыть",
+                Location = new Point(660, 420),
+                Size = new Size(100, 35),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            closeBtn.Click += (s, ev) => historyForm.Close();
+
+            historyForm.Controls.Add(grid);
+            historyForm.Controls.Add(balanceLabel);
+            historyForm.Controls.Add(spentLabel);
+            historyForm.Controls.Add(closeBtn);
+            historyForm.ShowDialog();
+        }
+
+        private void ChangeBalanceBtn_Click(object sender, EventArgs e)
+        {
+            if (usersGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Выберите пользователя", "Ошибка");
+                return;
+            }
+
+            var userId = (Guid)usersGrid.SelectedRows[0].Cells["Id"].Value;
+            var user = _viewModel.GetUser(userId);
+            if (user == null) return;
+
+            var balanceForm = new Form
+            {
+                Text = "Изменение баланса",
+                Size = new Size(350, 200),
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = Color.FromArgb(240, 240, 240),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false
+            };
+
+            var lblCurrent = new Label
+            {
+                Text = $"Текущий баланс: {user.Balance:N0} руб.",
+                Location = new Point(30, 20),
+                Size = new Size(280, 25),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            var lblNew = new Label
+            {
+                Text = "Новый баланс:",
+                Location = new Point(30, 60),
+                Size = new Size(100, 25),
+                ForeColor = Color.FromArgb(60, 60, 60)
+            };
+
+            var txtNewBalance = new TextBox
+            {
+                Location = new Point(130, 58),
+                Size = new Size(150, 25),
+                BackColor = Color.White
+            };
+
+            var btnSave = new Button
+            {
+                Text = "Сохранить",
+                Location = new Point(30, 100),
+                Size = new Size(100, 35),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+
+            btnSave.Click += (s, ev) =>
+            {
+                if (decimal.TryParse(txtNewBalance.Text, out decimal newBalance))
+                {
+                    try
+                    {
+                        _viewModel.ChangeUserBalance(user.Id, newBalance);
+                        MessageBox.Show($"Баланс изменён: {user.Balance:N0} руб. → {newBalance:N0} руб.", "Успешно");
+                        LoadUsers();
+                        balanceForm.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Введите корректную сумму", "Ошибка");
+                }
+            };
+
+            balanceForm.Controls.Add(lblCurrent);
+            balanceForm.Controls.Add(lblNew);
+            balanceForm.Controls.Add(txtNewBalance);
+            balanceForm.Controls.Add(btnSave);
+            balanceForm.ShowDialog();
+        }
+        private void ConsoleBtn_Click(object sender, EventArgs e)
+        {
+            var consoleForm = new AdminConsoleForm();
+            consoleForm.ShowDialog();
         }
     }
 }

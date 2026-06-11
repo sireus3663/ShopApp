@@ -1,4 +1,5 @@
-﻿using ShopProject.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,24 @@ namespace ShopProject.Db
         {
             return _dbSet.Where(o => o.UserId == userId).ToList();
         }
+
         public List<Order> GetByProduct(Guid productId)
         {
-            return _dbSet.Where(o=>o.ProductId == productId).ToList();
+            return _dbSet.Where(o => o.ProductId == productId).ToList();
+        }
+
+        public async Task<List<Order>> GetByUserAsync(Guid userId)
+        {
+            return await _dbSet
+                .Where(o => o.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<List<Order>> GetByProductAsync(Guid productId)
+        {
+            return await _dbSet
+                .Where(o => o.ProductId == productId)
+                .ToListAsync();
         }
     }
 }

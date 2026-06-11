@@ -42,10 +42,11 @@ namespace ShopProject.Services
                 Id = Guid.NewGuid(),
                 Name = name,
                 Email = email,
-                Password = password,
                 Balance = 0,
-                Role = Role.Buyer
+                Role = Role.Buyer,
+                IsBlocked = false
             };
+            newUser.SetPassword(password);
 
             _userRepository.Add(newUser);
             _logger.Info($"User Created [{newUser.Email}]");

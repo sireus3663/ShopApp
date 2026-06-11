@@ -1,4 +1,5 @@
-﻿using ShopProject.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,14 +17,30 @@ namespace ShopProject.Db
             return _dbSet.FirstOrDefault(u => u.Email == email);
         }
 
-        public User GetByLogin(string email, string password)
-        {
-            return _dbSet.FirstOrDefault(u => u.Email == email && u.Password == password);
-        }
-
         public bool Exists(string email)
         {
             return _dbSet.Any(u => u.Email == email);
+        }
+
+        public async Task<User> GetByEmailAsync(string email)
+        {
+            return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<bool> ExistsAsync(string email)
+        {
+            return await _dbSet.AnyAsync(u => u.Email == email);
+        }
+
+        public async Task<User> GetByLoginAsync(string email, string password)
+        {
+            var user = await GetByEmailAsync(email);
+            if (user == null) return null;
+
+            if (user.VerifyPassword(password))
+                return user;
+
+            return null;
         }
     }
 }

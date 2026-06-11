@@ -1,8 +1,8 @@
-﻿using ShopProject.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ShopProject.Db
@@ -26,6 +26,25 @@ namespace ShopProject.Db
         public List<Product> GetByCategory(string category)
         {
             return _dbSet.Where(p => p.Category == category).ToList();
+        }
+
+        public async Task<List<Product>> SearchAsync(string name)
+        {
+            return await _dbSet
+                .Where(p => p.Name.ToLower().Contains(name.ToLower()))
+                .ToListAsync();
+        }
+
+        public async Task<List<Product>> GetSortedByPriceAsync()
+        {
+            return await _dbSet.OrderBy(p => p.Price).ToListAsync();
+        }
+
+        public async Task<List<Product>> GetByCategoryAsync(string category)
+        {
+            return await _dbSet
+                .Where(p => p.Category == category)
+                .ToListAsync();
         }
     }
 }

@@ -4,22 +4,22 @@ using System.Linq;
 using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Models;
+using ShopProject.WinForms.ViewModels;
 
 namespace ShopProject.WinForms
 {
     public class ModeratorPanelForm : Form
     {
-        private AppDbContext _context;
-        private User _moderator;
         private DataGridView productsGrid;
         private Button approveBtn;
         private Button declineBtn;
         private Button refreshBtn;
+        private ModeratorViewModel _viewModel;
 
         public ModeratorPanelForm(AppDbContext context, User moderator)
         {
-            _context = context;
-            _moderator = moderator;
+            var productRepo = new ProductRepository(context);
+            _viewModel = new ModeratorViewModel(productRepo);
             InitializeComponent();
             LoadProductsForModeration();
         }
@@ -33,7 +33,7 @@ namespace ShopProject.WinForms
 
             var title = new Label
             {
-                Text = $"Модерация товаров - {_moderator.Name}",
+                Text = "Модерация товаров",
                 ForeColor = Color.FromArgb(60, 60, 60),
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 Location = new Point(20, 20),
@@ -107,20 +107,15 @@ namespace ShopProject.WinForms
         {
             try
             {
-                var repo = new ProductRepository(_context);
-                var products = repo.GetAll()
-                    .Where(p => !p.IsApproved)
-                    .Select(p => new
-                    {
-                        p.Id,
-                        p.Name,
-                        p.Price,
-                        p.Category,
-                        Seller = p.SellerId.ToString()
-                    })
-                    .ToList();
-
-                productsGrid.DataSource = products;
+                var products = _viewModel.GetProductsForModeration();
+                productsGrid.DataSource = products.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Price,
+                    p.Category,
+                    Seller = p.SellerId.ToString()
+                }).ToList();
                 productsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             }
             catch (Exception ex)
@@ -138,15 +133,16 @@ namespace ShopProject.WinForms
             }
 
             var productId = (Guid)productsGrid.SelectedRows[0].Cells["Id"].Value;
-            var productRepo = new ProductRepository(_context);
-            var product = productRepo.GetById(productId);
 
-            if (product != null)
+            try
             {
-                product.IsApproved = true;
-                productRepo.Update(product);
+                _viewModel.ApproveProduct(productId);
                 LoadProductsForModeration();
-                MessageBox.Show($"Товар '{product.Name}' одобрен", "Успешно");
+                MessageBox.Show("Товар одобрен", "Успешно");
+            }
+            catch (Exception ex)
+            {
+                ErrorForm.Show(ex.Message, ex);
             }
         }
 
@@ -159,14 +155,16 @@ namespace ShopProject.WinForms
             }
 
             var productId = (Guid)productsGrid.SelectedRows[0].Cells["Id"].Value;
-            var productRepo = new ProductRepository(_context);
-            var product = productRepo.GetById(productId);
 
-            if (product != null)
+            try
             {
-                productRepo.Delete(productId);
+                _viewModel.DeclineProduct(productId);
                 LoadProductsForModeration();
-                MessageBox.Show($"Товар '{product.Name}' отклонён", "Успешно");
+                MessageBox.Show("Товар отклонён", "Успешно");
+            }
+            catch (Exception ex)
+            {
+                ErrorForm.Show(ex.Message, ex);
             }
         }
     }

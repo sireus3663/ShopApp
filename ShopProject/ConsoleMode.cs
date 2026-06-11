@@ -57,23 +57,24 @@ namespace ShopProject
             var discountService = new DiscountService(discountRepo, authService, productRepo);
             var cartService = new CartService(cartRepo, authService);
             var favoriteService = new FavoriteService(favoriteRepo, authService);
-            var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService);
+            var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService, context);
             var moderatorService = new ModeratorService(userRepo, authService);
 
             string adminEmail = "admin@shop.com";
             string adminPassword = "Admin123";
             if (!userRepo.Exists(adminEmail))
             {
-                userRepo.Add(new User
+                var admin = new User
                 {
                     Id = Guid.NewGuid(),
                     Name = "Administrator",
                     Email = adminEmail,
-                    Password = adminPassword,
                     Balance = 999999,
                     Role = Role.Admin,
                     IsBlocked = false
-                });
+                };
+                admin.SetPassword(adminPassword); 
+                userRepo.Add(admin);
                 Console.WriteLine($"[OK] Создан администратор: {adminEmail} / {adminPassword}");
             }
             else { Console.WriteLine($"[i] Администратор уже существует: {adminEmail}"); }
@@ -82,16 +83,17 @@ namespace ShopProject
             string moderatorPassword = "Moder123";
             if (!userRepo.Exists(moderatorEmail))
             {
-                userRepo.Add(new User
+                var moderator = new User
                 {
                     Id = Guid.NewGuid(),
                     Name = "Moderator",
                     Email = moderatorEmail,
-                    Password = moderatorPassword,
                     Balance = 10000,
                     Role = Role.Moderator,
                     IsBlocked = false
-                });
+                };
+                moderator.SetPassword(moderatorPassword);
+                userRepo.Add(moderator);
                 Console.WriteLine($"[OK] Создан модератор: {moderatorEmail} / {moderatorPassword}");
             }
             else { Console.WriteLine($"[i] Модератор уже существует: {moderatorEmail}"); }
@@ -100,16 +102,17 @@ namespace ShopProject
             string sellerPassword = "Seller123";
             if (!userRepo.Exists(sellerEmail))
             {
-                userRepo.Add(new User
+                var seller = new User
                 {
                     Id = Guid.NewGuid(),
                     Name = "Seller",
                     Email = sellerEmail,
-                    Password = sellerPassword,
                     Balance = 50000,
                     Role = Role.Seller,
                     IsBlocked = false
-                });
+                };
+                seller.SetPassword(sellerPassword);
+                userRepo.Add(seller);
                 Console.WriteLine($"[OK] Создан продавец: {sellerEmail} / {sellerPassword}");
             }
             else { Console.WriteLine($"[i] Продавец уже существует: {sellerEmail}"); }
@@ -118,16 +121,17 @@ namespace ShopProject
             string buyerPassword = "Buyer123";
             if (!userRepo.Exists(buyerEmail))
             {
-                userRepo.Add(new User
+                var buyer = new User
                 {
                     Id = Guid.NewGuid(),
                     Name = "Buyer",
                     Email = buyerEmail,
-                    Password = buyerPassword,
                     Balance = 10000,
                     Role = Role.Buyer,
                     IsBlocked = false
-                });
+                };
+                buyer.SetPassword(buyerPassword);
+                userRepo.Add(buyer);
                 Console.WriteLine($"[OK] Создан покупатель: {buyerEmail} / {buyerPassword}");
             }
             else { Console.WriteLine($"[i] Покупатель уже существует: {buyerEmail}"); }

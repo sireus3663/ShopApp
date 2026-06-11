@@ -3,23 +3,23 @@ using System.Drawing;
 using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Models;
+using ShopProject.WinForms.ViewModels;
 
 namespace ShopProject.WinForms
 {
     public class CreateProductForm : Form
     {
-        private AppDbContext _context;
-        private User _author;
         private TextBox txtName;
         private TextBox txtPrice;
         private TextBox txtCategory;
         private TextBox txtDescription;
         private Button btnSave;
+        private CreateProductViewModel _viewModel;
 
         public CreateProductForm(AppDbContext context, User author)
         {
-            _context = context;
-            _author = author;
+            var productRepo = new ProductRepository(context);
+            _viewModel = new CreateProductViewModel(productRepo, author);
             InitializeComponent();
         }
 
@@ -128,32 +128,13 @@ namespace ShopProject.WinForms
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(txtName.Text))
-                {
-                    MessageBox.Show("Укажите название товара", "Ошибка");
-                    return;
-                }
-
-                if (!decimal.TryParse(txtPrice.Text, out decimal price) || price <= 0)
+                if (!decimal.TryParse(txtPrice.Text, out decimal price))
                 {
                     MessageBox.Show("Укажите корректную цену", "Ошибка");
                     return;
                 }
 
-                var repo = new ProductRepository(_context);
-                var product = new Product
-                {
-                    Id = Guid.NewGuid(),
-                    Name = txtName.Text,
-                    Price = price,
-                    Category = txtCategory.Text,
-                    Description = txtDescription.Text,
-                    SellerId = _author?.Id,
-                    IsApproved = false,
-                    Amount = 1
-                };
-                repo.Add(product);
-
+                _viewModel.CreateProduct(txtName.Text, txtDescription.Text, price, txtCategory.Text);
                 MessageBox.Show("Товар создан и отправлен на модерацию", "Успешно");
                 this.Close();
             }
