@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
-using ShopProject.WinForms;
+using ShopProject.Forms;
 
 namespace ShopProject
 {

@@ -45,7 +45,6 @@ namespace ShopProject.Services
                 SellerId = currentUser.Id,
                 Category = Category,
                 IsApproved = false,
-                Amount = 1
             };
             _productRepository.Add(newProduct);
             return newProduct;
@@ -114,7 +113,6 @@ namespace ShopProject.Services
                 SellerId = currentUser.Id,
                 Category = Category,
                 IsApproved = false,
-                Amount = 1
             };
             await _productRepository.AddAsync(newProduct);
             return newProduct;

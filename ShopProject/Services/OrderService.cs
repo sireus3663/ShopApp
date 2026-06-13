@@ -63,10 +63,6 @@ namespace ShopProject.Services
                     if (product == null)
                         throw new Exception($"Товар не найден: {productInCart.ProductId}");
 
-                    if (product.Amount < productInCart.Count)
-                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}");
-
-                    product.Amount -= productInCart.Count;
                     _productRepository.Update(product);
 
                     Order newOrder = new Order
@@ -138,10 +134,6 @@ namespace ShopProject.Services
                     if (product == null)
                         throw new Exception($"Товар не найден: {productInCart.ProductId}");
 
-                    if (product.Amount < productInCart.Count)
-                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}");
-
-                    product.Amount -= productInCart.Count;
                     await _productRepository.UpdateAsync(product);
 
                     Order newOrder = new Order
