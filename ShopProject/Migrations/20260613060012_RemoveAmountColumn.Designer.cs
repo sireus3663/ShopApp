@@ -12,8 +12,8 @@ using ShopProject.Db;
 namespace ShopProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260526064201_RemoveAmountFromProduct")]
-    partial class RemoveAmountFromProduct
+    [Migration("20260613060012_RemoveAmountColumn")]
+    partial class RemoveAmountColumn
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -42,6 +42,10 @@ namespace ShopProject.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("carts");
                 });
 
@@ -59,6 +63,9 @@ namespace ShopProject.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId")
+                        .IsUnique();
+
                     b.ToTable("discounts");
                 });
 
@@ -75,6 +82,10 @@ namespace ShopProject.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("favorites");
                 });
@@ -101,6 +112,10 @@ namespace ShopProject.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("orders");
                 });
@@ -134,6 +149,8 @@ namespace ShopProject.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SellerId");
+
                     b.ToTable("products");
                 });
 
@@ -150,11 +167,14 @@ namespace ShopProject.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -165,6 +185,68 @@ namespace ShopProject.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("users");
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Cart", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Discount", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithOne()
+                        .HasForeignKey("ShopProject.Models.Discount", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Favorite", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Order", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Product", b =>
+                {
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

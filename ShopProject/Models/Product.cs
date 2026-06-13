@@ -22,5 +22,5 @@ public class Product
 
     public bool IsApproved { get; set; }
 
-    public int Amount { get; set; }
+    public byte[]? ProductImage { get; set; }
 }

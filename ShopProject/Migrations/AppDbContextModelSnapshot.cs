@@ -39,6 +39,10 @@ namespace ShopProject.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("carts");
                 });
 
@@ -56,6 +60,9 @@ namespace ShopProject.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId")
+                        .IsUnique();
+
                     b.ToTable("discounts");
                 });
 
@@ -72,6 +79,10 @@ namespace ShopProject.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("favorites");
                 });
@@ -98,6 +109,10 @@ namespace ShopProject.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("orders");
                 });
@@ -126,10 +141,15 @@ namespace ShopProject.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
+                    b.Property<byte[]>("ProductImage")
+                        .HasColumnType("bytea");
+
                     b.Property<Guid?>("SellerId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SellerId");
 
                     b.ToTable("products");
                 });
@@ -154,7 +174,7 @@ namespace ShopProject.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -165,6 +185,68 @@ namespace ShopProject.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("users");
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Cart", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Discount", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithOne()
+                        .HasForeignKey("ShopProject.Models.Discount", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Favorite", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Order", b =>
+                {
+                    b.HasOne("ShopProject.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Product", b =>
+                {
+                    b.HasOne("ShopProject.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

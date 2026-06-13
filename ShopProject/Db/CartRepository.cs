@@ -3,7 +3,6 @@ using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ShopProject.Db
@@ -28,6 +27,24 @@ namespace ShopProject.Db
         public void Save()
         {
             _context.SaveChanges();
+        }
+
+        public async Task<List<Cart>> GetByUserAsync(Guid userId)
+        {
+            return await _dbSet
+                .Where(c => c.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<Cart?> GetCartItemAsync(Guid userId, Guid productId)
+        {
+            return await _dbSet
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId);
+        }
+
+        public async Task SaveAsync()
+        {
+            await _context.SaveChangesAsync();
         }
     }
 }

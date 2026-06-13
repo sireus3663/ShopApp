@@ -5,33 +5,22 @@
 namespace ShopProject.Migrations
 {
     /// <inheritdoc />
-    public partial class newcart : Migration
+    public partial class RemoveAmountColumn : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "PriceAtMoment",
-                table: "carts");
-
-            migrationBuilder.AddColumn<int>(
-                name: "Count",
-                table: "orders",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                name: "Amount",
+                table: "products");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Count",
-                table: "orders");
-
             migrationBuilder.AddColumn<int>(
-                name: "PriceAtMoment",
-                table: "carts",
+                name: "Amount",
+                table: "products",
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
