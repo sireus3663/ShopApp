@@ -13,4 +13,10 @@ public class Discount
     public Guid ProductId { get; set; }
 
     public decimal Percent { get; set; }
+
+    public DateTime? ValidFrom { get; set; }
+    public DateTime? ValidTo { get; set; }
+    public bool IsActive =>
+        (!ValidFrom.HasValue || ValidFrom <= DateTime.UtcNow) &&
+        (!ValidTo.HasValue || ValidTo >= DateTime.UtcNow);
 }

@@ -11,11 +11,12 @@ namespace ShopProject.Services
     {
         public static bool CanBuy(Role role)
         {
-            return true; //любая роль сейчас может покупать, но возможно потом нам дадут правки, что кто то не может покупать
+            return role == Role.Buyer || role == Role.Admin;
         }
+
         public static bool CanSell(Role role)
         {
-            return role == Role.Seller || role == Role.Admin || role == Role.Moderator;
+            return role == Role.Seller || role == Role.Admin;
         }
 
         public static bool CanModerate(Role role)

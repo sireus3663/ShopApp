@@ -21,6 +21,8 @@ public class User
     public Role Role { get; set; }
 
     public bool IsBlocked { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 
     public void SetPassword(string password)
     {

@@ -14,4 +14,6 @@ public class Cart
     public Guid ProductId { get; set; }
 
     public int Count { get; set; }
+
+    public decimal PriceAtAdd { get; set; }
 }

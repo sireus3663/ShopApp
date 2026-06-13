@@ -18,4 +18,7 @@ public class Order
     public decimal Price { get; set; }
 
     public DateTime CreatedAt { get; set; }
+    public enum OrderStatus { Pending, Completed, Cancelled, Returned }
+    public OrderStatus Status { get; set; } = OrderStatus.Completed;
+    public DateTime? ReturnedAt { get; set; }
 }

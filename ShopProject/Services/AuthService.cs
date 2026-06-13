@@ -24,15 +24,18 @@ namespace ShopProject.Services
         public void Login(string email, string password)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                throw new Exception("поля не заполнены");
+                throw new Exception("Поля не заполнены");
+
+            if (!EmailValidator.IsValid(email))
+                throw new Exception("Некорректный формат email");
 
             if (!_userRepository.Exists(email))
-                throw new Exception("пользователя с таким email не существует");
+                throw new Exception("Пользователя с таким email не существует");
 
             User user = _userRepository.GetByEmail(email);
 
             if (!user.VerifyPassword(password))
-                throw new Exception("пароль неверный");
+                throw new Exception("Неверный пароль");
 
             if (user.IsBlocked)
                 throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
@@ -62,15 +65,17 @@ namespace ShopProject.Services
         public async Task LoginAsync(string email, string password)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                throw new Exception("поля не заполнены");
+                throw new Exception("Поля не заполнены");
+            if (!EmailValidator.IsValid(email))
+                throw new Exception("Некорректный формат email");
 
             if (!await _userRepository.ExistsAsync(email))
-                throw new Exception("пользователя с таким email не существует");
+                throw new Exception("Пользователя с таким email не существует");
 
             User user = await _userRepository.GetByEmailAsync(email);
 
             if (!user.VerifyPassword(password))
-                throw new Exception("пароль неверный");
+                throw new Exception("Неверный пароль");
 
             if (user.IsBlocked)
                 throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");

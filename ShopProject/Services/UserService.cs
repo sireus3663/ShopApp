@@ -25,6 +25,9 @@ namespace ShopProject.Services
 
         public User Register(string name, string email, string password)
         {
+            if (!EmailValidator.IsValid(email))
+                throw new Exception("Введите корректный email (например: user@example.com)");
+
             if (_userRepository.Exists(email))
                 throw new Exception("Пользователь с таким email уже существует");
 
@@ -41,7 +44,7 @@ namespace ShopProject.Services
             {
                 Id = Guid.NewGuid(),
                 Name = name,
-                Email = email,
+                Email = email.ToLower(),  
                 Balance = 0,
                 Role = Role.Buyer,
                 IsBlocked = false

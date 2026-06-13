@@ -16,7 +16,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductRepository _productRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "add-descount";
+        public override string Name => "add-discount";
         public override string Description => "Добавить скидку на товар. Использование: add-discount <id товара> <процент>";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 
@@ -28,7 +28,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         }
         public override void Execute(string[] args)
         {
-            if (args.Length < 2) { Error("кажите ID товара и процент скидки"); return; }
+            if (args.Length < 2) { Error("Укажите ID товара и процент скидки"); return; }
             if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
             if (!Guid.TryParse(args[0], out var productId)) { Error("Некорректный ID товара"); return; }
             if (!Decimal.TryParse(args[1], out var percent)) { Error("Процент должен быть числом"); return; }

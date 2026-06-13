@@ -30,7 +30,7 @@ namespace ShopProject.Services
             return _productRepository.GetAll().Where(p => !p.IsApproved).ToList();
         }
 
-        public Product createProduct(string Name, string Description, decimal Price, string Category)
+        public Product createProduct(string Name, string Description, decimal Price, string Category, int amount = 1)
         {
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanSell(currentUser.Role))
@@ -45,7 +45,7 @@ namespace ShopProject.Services
                 SellerId = currentUser.Id,
                 Category = Category,
                 IsApproved = false,
-                Amount = 1
+                Amount = amount
             };
             _productRepository.Add(newProduct);
             return newProduct;

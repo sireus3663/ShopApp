@@ -12,6 +12,7 @@ namespace ShopProject.WinForms
 {
     public class MainForm : Form
     {
+        private Panel filterPanel;
         private Panel headerPanel;
         private Panel catalogPanel;
         private FlowLayoutPanel productsFlow;
@@ -29,6 +30,7 @@ namespace ShopProject.WinForms
 
         private Button searchBtn;
         private Label favLabel;
+        private Button _themeToggleBtn;
 
         private int _currentPage = 1;
         private int _pageSize = 12;
@@ -36,25 +38,50 @@ namespace ShopProject.WinForms
         private Panel paginationPanel;
         private Label pageInfoLabel;
 
-        // Добавленные поля для сервисов
         private AuthService _authService;
         private ProductRepository _productRepo;
         private CartService _cartService;
 
+        private readonly LoggerService _logger;
+
+        private TextBox txtPriceFromGlobal;
+        private TextBox txtPriceToGlobal;
+
+        private bool _isDarkTheme = false;
+        private Color _lightBackColor = Color.FromArgb(240, 240, 240);
+        private Color _darkBackColor = Color.FromArgb(32, 32, 32);
+        private Color _lightPanelBackColor = Color.FromArgb(250, 250, 250);
+        private Color _darkPanelBackColor = Color.FromArgb(45, 45, 48);
+        private Color _lightTextColor = Color.FromArgb(60, 60, 60);
+        private Color _darkTextColor = Color.FromArgb(220, 220, 220);
+        private Color _lightHeaderColor = Color.FromArgb(45, 45, 48);
+        private Color _darkHeaderColor = Color.FromArgb(25, 25, 28);
+        private Color _lightButtonColor = Color.FromArgb(80, 80, 85);
+        private Color _darkButtonColor = Color.FromArgb(60, 60, 65);
+        private Color _lightSidebarColor = Color.FromArgb(248, 248, 248);
+        private Color _darkSidebarColor = Color.FromArgb(40, 40, 43);
+
         public MainForm()
         {
+            _logger = ServiceLocator.GetService<LoggerService>();
+
             CheckDatabaseConnection();
             InitializeServices();
+            RestoreSession();
             InitializeComponent();
             SubscribeEvents();
             LoadData();
+
+            // Горячие клавиши
+            this.KeyPreview = true;
+            this.KeyDown += MainForm_KeyDown;
+
+            _logger.Info("Приложение WinForms запущено");
         }
 
         private void CheckDatabaseConnection()
         {
-            var logger = new LoggerService();
-            var configService = new AppConfigService();
-            var startup = new StartupService(logger, configService);
+            var startup = ServiceLocator.GetService<StartupService>();
             _context = startup.TryConnect();
 
             if (_context == null)
@@ -75,7 +102,7 @@ namespace ShopProject.WinForms
 
         private void InitializeServices()
         {
-            var configService = new AppConfigService();
+            var configService = ServiceLocator.GetService<AppConfigService>();
             _authService = new AuthService(_context, configService);
             _productRepo = new ProductRepository(_context);
             var cartRepo = new CartRepository(_context);
@@ -84,6 +111,12 @@ namespace ShopProject.WinForms
             var favoriteService = new FavoriteService(favoriteRepo, _authService);
 
             _viewModel = new MainViewModel(_authService, _productRepo, _cartService, favoriteService);
+        }
+
+        private void RestoreSession()
+        {
+            var startup = ServiceLocator.GetService<StartupService>();
+            startup.RestoreSession(_context, _authService);
         }
 
         private void LoadData()
@@ -159,6 +192,10 @@ namespace ShopProject.WinForms
 
                 searchBox.Text = "";
                 categoryFilter.SelectedIndex = 0;
+
+                if (txtPriceFromGlobal != null) txtPriceFromGlobal.Text = "";
+                if (txtPriceToGlobal != null) txtPriceToGlobal.Text = "";
+
                 _currentPage = 1;
                 try
                 {
@@ -202,7 +239,7 @@ namespace ShopProject.WinForms
             var rightPanel = new Panel
             {
                 Dock = DockStyle.Right,
-                Width = 350, 
+                Width = 420,
                 Height = 65,
                 BackColor = Color.Transparent
             };
@@ -212,8 +249,21 @@ namespace ShopProject.WinForms
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(0, 18, 20, 0) 
+                Padding = new Padding(0, 18, 20, 0)
             };
+
+            _themeToggleBtn = new Button
+            {
+                Text = "Светлая",
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(80, 80, 85),
+                FlatStyle = FlatStyle.Flat,
+                Size = new Size(80, 30),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            _themeToggleBtn.Click += (s, e) => ToggleTheme();
+            flowRightPanel.Controls.Add(_themeToggleBtn);
 
             favLabel = new Label
             {
@@ -232,7 +282,7 @@ namespace ShopProject.WinForms
                 Text = "Корзина (0)",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Size = new Size(120, 30), 
+                Size = new Size(120, 30),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Cursor = Cursors.Hand,
                 AutoSize = false
@@ -242,13 +292,13 @@ namespace ShopProject.WinForms
 
             userInfoLabel = new Label
             {
-                Text = "👤 Вход",
+                Text = "Вход",
                 ForeColor = Color.FromArgb(200, 200, 200),
                 Font = new Font("Segoe UI", 10),
-                Size = new Size(110, 30),  
+                Size = new Size(110, 30),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Cursor = Cursors.Hand,
-                AutoSize = false  
+                AutoSize = false
             };
             userInfoLabel.Click += UserInfoLabel_Click;
             flowRightPanel.Controls.Add(userInfoLabel);
@@ -256,7 +306,7 @@ namespace ShopProject.WinForms
             rightPanel.Controls.Add(flowRightPanel);
             headerPanel.Controls.Add(rightPanel);
 
-            var filterPanel = new Panel
+            filterPanel = new Panel
             {
                 Dock = DockStyle.Left,
                 Width = 220,
@@ -294,6 +344,66 @@ namespace ShopProject.WinForms
             };
             categoryFilter.Items.Add("Все категории");
             filterPanel.Controls.Add(categoryFilter);
+
+            var pricePanel = new Panel
+            {
+                Location = new Point(15, 130),
+                Size = new Size(180, 100),
+                BackColor = Color.Transparent
+            };
+
+            var priceLabel = new Label
+            {
+                Text = "Цена (руб.):",
+                Font = new Font("Segoe UI", 10),
+                ForeColor = Color.FromArgb(100, 100, 100),
+                Location = new Point(0, 0),
+                AutoSize = true
+            };
+            pricePanel.Controls.Add(priceLabel);
+
+            txtPriceFromGlobal = new TextBox
+            {
+                Name = "txtPriceFrom",
+                Text = "",
+                Location = new Point(0, 25),
+                Size = new Size(80, 25),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pricePanel.Controls.Add(txtPriceFromGlobal);
+
+            txtPriceToGlobal = new TextBox
+            {
+                Name = "txtPriceTo",
+                Text = "",
+                Location = new Point(90, 25),
+                Size = new Size(80, 25),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 60, 60),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pricePanel.Controls.Add(txtPriceToGlobal);
+
+            var applyPriceBtn = new Button
+            {
+                Text = "Применить",
+                Location = new Point(0, 58),
+                Size = new Size(170, 30),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9)
+            };
+            applyPriceBtn.Click += async (s, e) =>
+            {
+                _currentPage = 1;
+                await LoadProductsAsync();
+            };
+            pricePanel.Controls.Add(applyPriceBtn);
+
+            filterPanel.Controls.Add(pricePanel);
 
             cartSidebar = new Panel
             {
@@ -416,7 +526,31 @@ namespace ShopProject.WinForms
                 else
                     categoryFilter.SelectedIndex = 0;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Ошибка загрузки категорий: {ex.Message}");
+            }
+        }
+
+        private List<Product> FilterByPrice(List<Product> products)
+        {
+            if (txtPriceFromGlobal != null &&
+                !string.IsNullOrWhiteSpace(txtPriceFromGlobal.Text) &&
+                decimal.TryParse(txtPriceFromGlobal.Text, out decimal priceFrom) &&
+                priceFrom > 0)
+            {
+                products = products.Where(p => p.Price >= priceFrom).ToList();
+            }
+
+            if (txtPriceToGlobal != null &&
+                !string.IsNullOrWhiteSpace(txtPriceToGlobal.Text) &&
+                decimal.TryParse(txtPriceToGlobal.Text, out decimal priceTo) &&
+                priceTo > 0)
+            {
+                products = products.Where(p => p.Price <= priceTo).ToList();
+            }
+
+            return products;
         }
 
         private async Task RefreshAllData()
@@ -455,11 +589,11 @@ namespace ShopProject.WinForms
                 Padding = new Padding(10, 5, 10, 5)
             };
 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F)); 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F)); 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));  
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
             var prevBtn = new Button
             {
@@ -552,6 +686,8 @@ namespace ShopProject.WinForms
                 var allProducts = _viewModel.SearchProducts(searchBox.Text);
                 allProducts = _viewModel.FilterByCategory(allProducts, categoryFilter.SelectedItem?.ToString());
 
+                allProducts = FilterByPrice(allProducts);
+
                 _totalPages = (int)Math.Ceiling((double)allProducts.Count / _pageSize);
                 if (_totalPages == 0) _totalPages = 1;
                 if (_currentPage > _totalPages) _currentPage = _totalPages;
@@ -594,11 +730,16 @@ namespace ShopProject.WinForms
 
         private Panel CreateProductCard(Product product)
         {
+            Color cardBackColor = _isDarkTheme ? Color.FromArgb(45, 45, 48) : Color.White;
+            Color textColor = _isDarkTheme ? _darkTextColor : _lightTextColor;
+            Color priceColor = _isDarkTheme ? Color.FromArgb(100, 200, 100) : Color.FromArgb(80, 80, 80);
+            Color buttonColor = _isDarkTheme ? Color.FromArgb(60, 60, 65) : Color.FromArgb(80, 80, 85);
+
             var card = new Panel
             {
                 Width = 220,
                 Height = 380,
-                BackColor = Color.White,
+                BackColor = cardBackColor,
                 Margin = new Padding(10),
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -626,7 +767,7 @@ namespace ShopProject.WinForms
                 Location = new Point(10, 170),
                 Size = new Size(200, 45),
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60)
+                ForeColor = textColor
             };
             card.Controls.Add(nameLabel);
 
@@ -636,7 +777,7 @@ namespace ShopProject.WinForms
                 Location = new Point(10, 220),
                 Size = new Size(200, 25),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(80, 80, 80)
+                ForeColor = priceColor
             };
             card.Controls.Add(priceLabel);
 
@@ -666,6 +807,9 @@ namespace ShopProject.WinForms
             };
             favButton.Click += async (s, e) => await ToggleFavoriteAsync(product.Id, favButton);
             card.Controls.Add(favButton);
+
+            cartButton.BackColor = buttonColor;
+            favButton.BackColor = cardBackColor;
 
             return card;
         }
@@ -871,13 +1015,10 @@ namespace ShopProject.WinForms
 
             try
             {
-                var orderService = new OrderService(_authService, _cartService,
-                    new OrderRepository(_context), _productRepo,
-                    new UserRepository(_context),
-                    new DiscountService(new DiscountRepository(_context), _authService, _productRepo),
-                    _context);
-
+                var orderService = ServiceLocator.GetService<OrderService>();
                 orderService.BuyCart();
+
+                _logger.Info($"Пользователь {_viewModel.CurrentUser?.Email} совершил покупку на сумму {total:N0} руб.");
 
                 MessageBox.Show("Покупка успешно оформлена! Спасибо за покупку!", "Успешно");
 
@@ -888,6 +1029,7 @@ namespace ShopProject.WinForms
             }
             catch (Exception ex)
             {
+                _logger.Error($"Ошибка при покупке: {ex.Message}", ex);
                 ErrorForm.Show(ex.Message, ex);
             }
         }
@@ -1005,6 +1147,7 @@ namespace ShopProject.WinForms
 
             var avatarPanel = new Panel
             {
+                Name = "avatarPanel",
                 Location = new Point(125, y),
                 Size = new Size(100, 100),
                 BackColor = Color.FromArgb(200, 200, 200),
@@ -1343,38 +1486,23 @@ namespace ShopProject.WinForms
         {
             try
             {
-                var orderRepo = new OrderRepository(_context);
-                var userRepo = new UserRepository(_context);
+                var orderService = ServiceLocator.GetService<OrderService>();
+                orderService.ReturnOrder(orderId);
 
-                var order = orderRepo.GetById(orderId);
-                if (order == null)
-                {
-                    MessageBox.Show("Заказ не найден", "Ошибка");
-                    return;
-                }
-
-                if (order.UserId != _viewModel.CurrentUser.Id)
-                {
-                    MessageBox.Show("Вы можете вернуть только свои заказы", "Ошибка");
-                    return;
-                }
-
-                var user = userRepo.GetById(order.UserId);
-                user.Balance += order.Price;
-                userRepo.Update(user);
-
-                orderRepo.Delete(orderId);
-
-                MessageBox.Show($"Заказ возвращён. Вам возвращено {order.Price:N0} руб.", "Успешно");
+                MessageBox.Show("Заказ возвращён", "Успешно");
 
                 var authService = _viewModel.GetAuthService();
-                authService.LoginById(user);
+                authService.LoginById(_viewModel.CurrentUser);
+
+                _logger.Info($"Пользователь {_viewModel.CurrentUser?.Email} вернул заказ {orderId}");
 
                 UpdateCartCount();
                 LoadProfileContent();
+                _ = LoadProductsAsync();
             }
             catch (Exception ex)
             {
+                _logger.Error($"Ошибка возврата заказа: {ex.Message}", ex);
                 ErrorForm.Show(ex.Message, ex);
             }
         }
@@ -1596,6 +1724,7 @@ namespace ShopProject.WinForms
 
         private void Logout()
         {
+            _logger.Info($"Пользователь {_viewModel.CurrentUser?.Name} вышел из системы");
             _viewModel.Logout();
             UpdateUserLabel();
             roleSidebar.Visible = false;
@@ -1603,6 +1732,214 @@ namespace ShopProject.WinForms
             profilePanel.Visible = false;
             _ = LoadProductsAsync();
             UpdateCartCount();
+        }
+
+        private void MainForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.F)
+            {
+                searchBox.Focus();
+                searchBox.SelectAll();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                if (cartSidebar.Visible)
+                {
+                    cartSidebar.Visible = false;
+                    isSidebarVisible = false;
+                }
+                else if (roleSidebar.Visible)
+                {
+                    roleSidebar.Visible = false;
+                }
+                else if (profilePanel.Visible)
+                {
+                    profilePanel.Visible = false;
+                }
+                else if (!string.IsNullOrEmpty(searchBox.Text))
+                {
+                    searchBox.Text = "";
+                    _ = LoadProductsAsync();
+                }
+                else
+                {
+                    var result = MessageBox.Show("Выйти из приложения?", "Выход",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes)
+                    {
+                        Application.Exit();
+                    }
+                }
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.F5)
+            {
+                _ = RefreshAllData();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.G)
+            {
+                ToggleTheme();
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private void ToggleTheme()
+        {
+            _isDarkTheme = !_isDarkTheme;
+
+            Color backColor = _isDarkTheme ? _darkBackColor : _lightBackColor;
+            Color panelBackColor = _isDarkTheme ? _darkPanelBackColor : _lightPanelBackColor;
+            Color textColor = _isDarkTheme ? _darkTextColor : _lightTextColor;
+            Color headerColor = _isDarkTheme ? _darkHeaderColor : _lightHeaderColor;
+            Color buttonColor = _isDarkTheme ? _darkButtonColor : _lightButtonColor;
+            Color sidebarColor = _isDarkTheme ? _darkSidebarColor : _lightSidebarColor;
+
+            this.BackColor = backColor;
+            headerPanel.BackColor = headerColor;
+            filterPanel.BackColor = sidebarColor;
+            catalogPanel.BackColor = backColor;
+            productsFlow.BackColor = backColor;
+
+            cartSidebar.BackColor = _isDarkTheme ? Color.FromArgb(45, 45, 48) : Color.White;
+            roleSidebar.BackColor = _isDarkTheme ? Color.FromArgb(40, 40, 43) : Color.FromArgb(248, 248, 248);
+            profilePanel.BackColor = _isDarkTheme ? Color.FromArgb(45, 45, 48) : Color.White;
+
+            _themeToggleBtn.Text = _isDarkTheme ? "Светлая" : "Тёмная";
+            _themeToggleBtn.BackColor = buttonColor;
+
+            categoryFilter.BackColor = backColor;
+            categoryFilter.ForeColor = textColor;
+
+            if (txtPriceFromGlobal != null)
+            {
+                txtPriceFromGlobal.BackColor = backColor;
+                txtPriceFromGlobal.ForeColor = textColor;
+            }
+            if (txtPriceToGlobal != null)
+            {
+                txtPriceToGlobal.BackColor = backColor;
+                txtPriceToGlobal.ForeColor = textColor;
+            }
+
+            foreach (Control control in filterPanel.Controls)
+            {
+                if (control is Label label)
+                {
+                    label.ForeColor = textColor;
+                }
+                else if (control is Panel pricePanel)
+                {
+                    foreach (Control inner in pricePanel.Controls)
+                    {
+                        if (inner is Label priceLabel)
+                        {
+                            priceLabel.ForeColor = textColor;
+                        }
+                        else if (inner is Button applyBtn && applyBtn.Text == "Применить")
+                        {
+                            applyBtn.BackColor = Color.FromArgb(80, 120, 80);
+                            applyBtn.ForeColor = Color.White;
+                        }
+                        else if (inner is TextBox txt)
+                        {
+                            txt.BackColor = backColor;
+                            txt.ForeColor = textColor;
+                        }
+                    }
+                }
+            }
+
+            foreach (Control control in headerPanel.Controls)
+            {
+                if (control is Button btn && (btn.Text == "Главная" || btn.Text == "Найти"))
+                {
+                    btn.BackColor = buttonColor;
+                    btn.ForeColor = Color.White;
+                }
+                else if (control is Panel rightPanel)
+                {
+                    foreach (Control inner in rightPanel.Controls)
+                    {
+                        if (inner is FlowLayoutPanel flowPanel)
+                        {
+                            foreach (Control item in flowPanel.Controls)
+                            {
+                                if (item is Label lbl && item != _themeToggleBtn)
+                                {
+                                    lbl.ForeColor = Color.FromArgb(200, 200, 200);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (paginationPanel != null)
+            {
+                paginationPanel.BackColor = backColor;
+                foreach (Control control in paginationPanel.Controls)
+                {
+                    if (control is TableLayoutPanel table)
+                    {
+                        foreach (Control cell in table.Controls)
+                        {
+                            if (cell is Button btn)
+                            {
+                                btn.BackColor = buttonColor;
+                                btn.ForeColor = Color.White;
+                            }
+                            else if (cell is Label lbl)
+                            {
+                                lbl.ForeColor = textColor;
+                            }
+                            else if (cell is ComboBox combo)
+                            {
+                                combo.BackColor = backColor;
+                                combo.ForeColor = textColor;
+                            }
+                        }
+                    }
+                }
+            }
+            UpdateProfileTheme();
+            _ = LoadProductsAsync();
+        }
+        private void UpdateProfileTheme()
+        {
+            Color textColor = _isDarkTheme ? _darkTextColor : _lightTextColor;
+            Color avatarBackColor = _isDarkTheme ? Color.FromArgb(60, 60, 65) : Color.FromArgb(200, 200, 200);
+            Color buttonBackColor = _isDarkTheme ? Color.FromArgb(60, 60, 65) : Color.FromArgb(80, 80, 85);
+            Color balanceColor = _isDarkTheme ? Color.FromArgb(100, 200, 100) : Color.FromArgb(80, 120, 80);
+            Color statusColor = _isDarkTheme ? Color.FromArgb(100, 200, 100) : Color.FromArgb(80, 120, 80);
+            Color separatorColor = _isDarkTheme ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
+
+            foreach (Control control in profilePanel.Controls)
+            {
+                if (control is Label label && control.Name != "avatarLabel" && label.Text != new string('-', 30))
+                {
+                    if (label.Text.StartsWith("Баланс:"))
+                        label.ForeColor = balanceColor;
+                    else if (label.Text.StartsWith("Статус:"))
+                        label.ForeColor = statusColor;
+                    else
+                        label.ForeColor = textColor;
+                }
+                else if (control is Button button)
+                {
+                    button.BackColor = buttonBackColor;
+                    button.ForeColor = Color.White;
+                }
+                else if (control is Panel avatarPanel && avatarPanel.Name == "avatarPanel")
+                {
+                    avatarPanel.BackColor = avatarBackColor;
+                }
+                else if (control is Label separator && separator.Text == new string('-', 30))
+                {
+                    separator.ForeColor = separatorColor;
+                }
+            }
         }
     }
 }

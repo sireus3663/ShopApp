@@ -5,7 +5,6 @@ using System.IO;
 using System.Windows.Forms;
 using ShopProject.Models;
 
-
 namespace ShopProject.WinForms
 {
     public class AdminConsoleForm : Form
@@ -16,7 +15,7 @@ namespace ShopProject.WinForms
         private Process _consoleProcess;
         private bool _isRunning = false;
 
-        public AdminConsoleForm(User currentUser)  
+        public AdminConsoleForm(User currentUser)
         {
             _currentUser = currentUser;
             InitializeComponent();
@@ -132,8 +131,8 @@ namespace ShopProject.WinForms
                     CreateNoWindow = true
                 };
 
-                _consoleProcess.OutputDataReceived += (s, e) => AppendOutput(e.Data);
-                _consoleProcess.ErrorDataReceived += (s, e) => AppendOutput($"[ERROR] {e.Data}");
+                _consoleProcess.OutputDataReceived += (s, e) => AppendColoredOutput(e.Data);
+                _consoleProcess.ErrorDataReceived += (s, e) => AppendColoredOutput($"[ERROR] {e.Data}", Color.Red);
 
                 _consoleProcess.Start();
                 _consoleProcess.BeginOutputReadLine();
@@ -141,29 +140,97 @@ namespace ShopProject.WinForms
 
                 _isRunning = true;
                 UpdateStatus("Активен", Color.FromArgb(100, 200, 100));
-                AppendOutput($"[СИСТЕМА] Консоль запущена. Пользователь: {_currentUser.Name} ({_currentUser.Role})");
-                AppendOutput("[СИСТЕМА] Введите 'help' для списка команд\n");
+                AppendColoredOutput("[СИСТЕМА] Консоль запущена. Пользователь: " + _currentUser.Name + " (" + _currentUser.Role + ")", Color.Cyan);
+                AppendColoredOutput("[СИСТЕМА] Введите 'help' для списка команд\n", Color.Cyan);
             }
             catch (Exception ex)
             {
-                AppendOutput($"[ОШИБКА] Не удалось запустить консоль: {ex.Message}");
+                AppendColoredOutput($"[ОШИБКА] Не удалось запустить консоль: {ex.Message}", Color.Red);
                 UpdateStatus("Ошибка", Color.FromArgb(200, 100, 100));
             }
         }
 
-        private void AppendOutput(string text)
+        private void AppendColoredOutput(string text, Color? forcedColor = null)
         {
             if (consoleOutput.InvokeRequired)
             {
-                consoleOutput.Invoke(new Action(() => AppendOutput(text)));
+                consoleOutput.Invoke(new Action(() => AppendColoredOutput(text, forcedColor)));
                 return;
             }
 
-            if (!string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(text)) return;
+
+            Color textColor = forcedColor ?? GetColorByText(text);
+
+            var originalColor = consoleOutput.SelectionColor;
+
+            consoleOutput.SelectionColor = textColor;
+            consoleOutput.AppendText(text + Environment.NewLine);
+
+            consoleOutput.SelectionColor = originalColor;
+
+            consoleOutput.ScrollToCaret();
+        }
+
+        private Color GetColorByText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return Color.Gray;
+
+
+            if (text.Contains("[ERROR]") ||
+                text.Contains("[ОШИБКА]") ||
+                text.Contains("Exception:") ||
+                text.Contains("не найден") ||
+                text.Contains("не удалось") ||
+                text.Contains("недостаточно") ||
+                text.Contains("неверный") ||
+                text.StartsWith("ERROR:"))
             {
-                consoleOutput.AppendText(text + Environment.NewLine);
-                consoleOutput.ScrollToCaret();
+                return Color.Red;
             }
+
+            if (text.Contains("[OK]") ||
+                text.Contains("[SUCCESS]") ||
+                text.Contains("успешно") ||
+                text.Contains("одобрен") ||
+                text.Contains("создан") ||
+                text.Contains("добавлен") ||
+                text.Contains("удалён") ||
+                text.Contains("Добро пожаловать") ||
+                text.Contains("изменён"))
+            {
+                return Color.LightGreen;
+            }
+
+            if (text.Contains("[WARNING]") ||
+                text.Contains("[WARN]") ||
+                text.Contains("ВНИМАНИЕ") ||
+                text.Contains("не найден"))
+            {
+                return Color.Orange;
+            }
+
+            if (text.Contains("[i]") ||
+                text.Contains("[INFO]") ||
+                text.Contains("[СИСТЕМА]") ||
+                text.Contains("Всего") ||
+                text.Contains("Товары") ||
+                text.Contains("Корзина") ||
+                text.Contains("Избранное"))
+            {
+                return Color.Cyan;
+            }
+
+            if (text.StartsWith("> "))
+            {
+                return Color.White;
+            }
+
+            if (text.Contains("===") || text.Contains("Доступные команды"))
+            {
+                return Color.Yellow;
+            }
+            return Color.LightGray;
         }
 
         private void InputBox_KeyDown(object sender, KeyEventArgs e)
@@ -173,7 +240,7 @@ namespace ShopProject.WinForms
                 var command = inputBox.Text.Trim();
                 if (!string.IsNullOrEmpty(command))
                 {
-                    AppendOutput($"> {command}");
+                    AppendColoredOutput($"> {command}", Color.White);
                     _consoleProcess.StandardInput.WriteLine(command);
                     inputBox.Clear();
                 }
@@ -188,7 +255,7 @@ namespace ShopProject.WinForms
                 _consoleProcess.Dispose();
             }
 
-            AppendOutput("\n[СИСТЕМА] Перезапуск консоли...\n");
+            AppendColoredOutput("\n[СИСТЕМА] Перезапуск консоли...\n", Color.Yellow);
             StartConsole();
         }
 

@@ -29,8 +29,6 @@ namespace ShopProject.Services
             _context = context;
         }
 
-        // ========== СИНХРОННЫЕ МЕТОДЫ ==========
-
         public void BuyCart()
         {
             var currentUser = _authService.RequireUser();
@@ -46,41 +44,47 @@ namespace ShopProject.Services
 
             try
             {
-                var totalPrice = cart.Sum(product =>
-                    _discountService.CalculatePrice(_productRepository.GetById(product.ProductId)) * product.Count
-                );
+                var validItems = new List<(Product product, Cart cartItem)>();
+
+                foreach (var cartItem in cart)
+                {
+                    var product = _productRepository.GetById(cartItem.ProductId);
+
+                    if (product == null)
+                        throw new Exception($"Товар не найден: {cartItem.ProductId}");
+
+                    if (product.Amount < cartItem.Count)
+                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}, требуется: {cartItem.Count}");
+
+                    validItems.Add((product, cartItem));
+                }
+
+                var totalPrice = validItems.Sum(item =>
+                    _discountService.CalculatePrice(item.product) * item.cartItem.Count);
 
                 if (currentUser.Balance < totalPrice)
-                    throw new Exception("У пользователя недостаточно денег");
+                    throw new Exception($"Недостаточно средств. Нужно: {totalPrice} руб., доступно: {currentUser.Balance} руб.");
 
                 currentUser.Balance -= totalPrice;
                 _userRepository.Update(currentUser);
 
-                foreach (var productInCart in cart)
+                foreach (var (product, cartItem) in validItems)
                 {
-                    var product = _productRepository.GetById(productInCart.ProductId);
-
-                    if (product == null)
-                        throw new Exception($"Товар не найден: {productInCart.ProductId}");
-
-                    if (product.Amount < productInCart.Count)
-                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}");
-
-                    product.Amount -= productInCart.Count;
+                    product.Amount -= cartItem.Count;
                     _productRepository.Update(product);
 
                     Order newOrder = new Order
                     {
                         Id = Guid.NewGuid(),
                         UserId = currentUser.Id,
-                        ProductId = productInCart.ProductId,
-                        Price = _discountService.CalculatePrice(product) * productInCart.Count,
-                        Count = productInCart.Count,
+                        ProductId = cartItem.ProductId,
+                        Price = _discountService.CalculatePrice(product) * cartItem.Count,
+                        Count = cartItem.Count,
                         CreatedAt = DateTime.UtcNow
                     };
 
                     _orderRepository.Add(newOrder);
-                    _cartService.DeleteCart(productInCart.Id);
+                    _cartService.DeleteCart(cartItem.Id);
                 }
 
                 transaction.Commit();
@@ -93,12 +97,45 @@ namespace ShopProject.Services
             }
         }
 
+        public void ReturnOrder(Guid orderId)
+        {
+            var currentUser = _authService.RequireUser();
+            var order = _orderRepository.GetById(orderId);
+
+            if (order == null)
+                throw new Exception("Заказ не найден");
+
+            if (order.UserId != currentUser.Id)
+                throw new Exception("Вы можете вернуть только свои заказы");
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                var product = _productRepository.GetById(order.ProductId);
+                if (product != null)
+                {
+                    product.Amount += order.Count;
+                    _productRepository.Update(product);
+                }
+                var user = _userRepository.GetById(order.UserId);
+                user.Balance += order.Price;
+                _userRepository.Update(user);
+
+                _orderRepository.Delete(orderId);
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
         public List<Order> getUserOrders(Guid userId)
         {
             return _orderRepository.GetByUser(userId);
         }
-
-        // ========== АСИНХРОННЫЕ МЕТОДЫ ==========
 
         public async Task BuyCartAsync()
         {
@@ -115,47 +152,50 @@ namespace ShopProject.Services
 
             try
             {
-                var totalPrice = 0m;
-                foreach (var productInCart in cart)
+                var validItems = new List<(Product product, Cart cartItem)>();
+
+                foreach (var cartItem in cart)
                 {
-                    var product = await _productRepository.GetByIdAsync(productInCart.ProductId);
-                    if (product != null)
-                    {
-                        totalPrice += _discountService.CalculatePrice(product) * productInCart.Count;
-                    }
+                    var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
+
+                    if (product == null)
+                        throw new Exception($"Товар не найден: {cartItem.ProductId}");
+
+                    if (product.Amount < cartItem.Count)
+                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}, требуется: {cartItem.Count}");
+
+                    validItems.Add((product, cartItem));
+                }
+
+                var totalPrice = 0m;
+                foreach (var (product, cartItem) in validItems)
+                {
+                    totalPrice += _discountService.CalculatePrice(product) * cartItem.Count;
                 }
 
                 if (currentUser.Balance < totalPrice)
-                    throw new Exception("У пользователя недостаточно денег");
+                    throw new Exception($"Недостаточно средств. Нужно: {totalPrice} руб., доступно: {currentUser.Balance} руб.");
 
                 currentUser.Balance -= totalPrice;
                 await _userRepository.UpdateAsync(currentUser);
 
-                foreach (var productInCart in cart)
+                foreach (var (product, cartItem) in validItems)
                 {
-                    var product = await _productRepository.GetByIdAsync(productInCart.ProductId);
-
-                    if (product == null)
-                        throw new Exception($"Товар не найден: {productInCart.ProductId}");
-
-                    if (product.Amount < productInCart.Count)
-                        throw new Exception($"Недостаточно товара: {product.Name}. Доступно: {product.Amount}");
-
-                    product.Amount -= productInCart.Count;
+                    product.Amount -= cartItem.Count;
                     await _productRepository.UpdateAsync(product);
 
                     Order newOrder = new Order
                     {
                         Id = Guid.NewGuid(),
                         UserId = currentUser.Id,
-                        ProductId = productInCart.ProductId,
-                        Price = _discountService.CalculatePrice(product) * productInCart.Count,
-                        Count = productInCart.Count,
+                        ProductId = cartItem.ProductId,
+                        Price = _discountService.CalculatePrice(product) * cartItem.Count,
+                        Count = cartItem.Count,
                         CreatedAt = DateTime.UtcNow
                     };
 
                     await _orderRepository.AddAsync(newOrder);
-                    await _cartService.DeleteCartAsync(productInCart.Id);
+                    await _cartService.DeleteCartAsync(cartItem.Id);
                 }
 
                 await transaction.CommitAsync();
