@@ -137,12 +137,12 @@ namespace ShopProject.Forms
             AcceptButton = btnLogin;
         }
 
-        private void BtnLogin_Click(object sender, EventArgs e)
+        private async void BtnLogin_Click(object sender, EventArgs e)
         {
             lblError.Visible = false;
             try
             {
-                _authService.Login(txtEmail.Text.Trim(), txtPassword.Text);
+                await _authService.Login(txtEmail.Text, txtPassword.Text);
                 DialogResult = DialogResult.OK;
                 Close();
             }

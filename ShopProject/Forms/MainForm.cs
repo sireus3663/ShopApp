@@ -45,21 +45,22 @@ namespace ShopProject.Forms
         private UserService _userService;
         private ProductService _productService;
 
-        public MainForm()
+        public MainForm(AuthService authService, AppDbContext context)
         {
-            CheckDatabaseConnection();
+            _authService = authService;
+            _context = context;
+            CheckDatabaseConnection(_context);
             InitializeServices();
             InitializeComponent();
             SubscribeEvents();
             LoadData();
         }
 
-        private void CheckDatabaseConnection()
+        private void CheckDatabaseConnection(AppDbContext _context)
         {
             var logger = new LoggerService();
             var configService = new AppConfigService();
             var startup = new StartupService(logger, configService);
-            _context = startup.TryConnect();
 
             if (_context == null)
             {
@@ -80,7 +81,6 @@ namespace ShopProject.Forms
         private void InitializeServices()
         {
             var configService = new AppConfigService();
-            _authService = new AuthService(_context, configService);
             _productRepo = new ProductRepository(_context);
             var cartRepo = new CartRepository(_context);
             _cartService = new CartService(cartRepo, _authService);

@@ -18,6 +18,7 @@ namespace ShopProject.Db;
     public DbSet<Discount> discounts { get; set; }
     public DbSet<Cart> carts { get; set; }
     public DbSet<Favorite> favorites { get; set; }
+    public DbSet<Session> sessions { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
         string jsonString = File.ReadAllText("AppConfig.json");
@@ -78,6 +79,12 @@ namespace ShopProject.Db;
             .HasOne<User>()
             .WithMany()
             .HasForeignKey(p => p.SellerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Session>()
+            .HasOne<User>(p=>p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

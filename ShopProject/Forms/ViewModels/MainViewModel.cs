@@ -153,15 +153,15 @@ namespace ShopProject.Forms.ViewModels
                 .ToList();
         }
 
-        public void Login(string email, string password)
+        public async void Login(string email, string password)
         {
-            _authService.Login(email, password);
+            await _authService.Login(email, password);
             LoadFavorites();
         }
 
-        public void Logout()
+        public async void Logout()
         {
-            _authService.Logout();
+            await _authService.Logout();
             _favoritesList.Clear();
         }
 

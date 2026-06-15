@@ -232,9 +232,9 @@ namespace ShopProject.Forms
             btn.ForeColor = Color.White;
         }
 
-        private void BtnLogout_Click(object sender, EventArgs e)
+        private async void BtnLogout_Click(object sender, EventArgs e)
         {
-            _authService.Logout();
+            await _authService.Logout();
             DialogResult = DialogResult.Abort;
             Close();
         }
