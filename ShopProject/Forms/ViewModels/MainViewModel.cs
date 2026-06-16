@@ -29,8 +29,9 @@ namespace ShopProject.Forms.ViewModels
             _favoritesList = new List<Guid>();
         }
 
-        public User CurrentUser => _authService.currentUser;
+        public User? CurrentUser => _authService.CurrentUser;
         public bool IsAuthenticated => CurrentUser != null;
+
         public void LoadFavorites()
         {
             if (IsAuthenticated)
@@ -127,7 +128,7 @@ namespace ShopProject.Forms.ViewModels
                 _favoritesList.Add(productId);
         }
 
-        public Product GetProduct(Guid productId)
+        public Product? GetProduct(Guid productId)
         {
             return _productRepo.GetById(productId);
         }
@@ -137,8 +138,12 @@ namespace ShopProject.Forms.ViewModels
             if (!IsAuthenticated)
                 return new List<Product>();
 
+            var currentUser = CurrentUser;
+            if (currentUser == null)
+                return new List<Product>();
+
             return _productRepo.GetAll()
-                .Where(p => p.SellerId == CurrentUser.Id)
+                .Where(p => p.SellerId == currentUser.Id)
                 .ToList();
         }
 
@@ -262,7 +267,7 @@ namespace ShopProject.Forms.ViewModels
                 _favoritesList.Add(productId);
         }
 
-        public async Task<Product> GetProductAsync(Guid productId)
+        public async Task<Product?> GetProductAsync(Guid productId)
         {
             return await _productRepo.GetByIdAsync(productId);
         }
@@ -272,8 +277,12 @@ namespace ShopProject.Forms.ViewModels
             if (!IsAuthenticated)
                 return new List<Product>();
 
+            var currentUser = CurrentUser;
+            if (currentUser == null)
+                return new List<Product>();
+
             var products = await _productRepo.GetAllAsync();
-            return products.Where(p => p.SellerId == CurrentUser.Id).ToList();
+            return products.Where(p => p.SellerId == currentUser.Id).ToList();
         }
 
         public async Task<List<Product>> GetFavoriteProductsAsync()
@@ -293,13 +302,12 @@ namespace ShopProject.Forms.ViewModels
 
         public void UpdateCurrentUserBalance(decimal newBalance)
         {
-            if (_authService.currentUser != null)
+            var currentUser = _authService.CurrentUser;
+            if (currentUser != null)
             {
-                _authService.currentUser.Balance = newBalance;
+                currentUser.Balance = newBalance;
             }
         }
-
-
 
         public async Task LoginAsync(string email, string password)
         {

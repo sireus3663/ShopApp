@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ShopProject.Services.Interfaces;
+using System;
+using System.IO;
 
 namespace ShopProject.Services
 {
-    public class LoggerService
+    public class LoggerService : ILoggerService
     {
         private readonly string _logFilePath;
 
         public LoggerService(string logFilePath = "logs/app.log")
         {
             var directory = Path.GetDirectoryName(logFilePath);
-            if(!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
@@ -28,11 +26,6 @@ namespace ShopProject.Services
                 logEntry += $" | Exception: {ex.GetType().Name} - {ex.Message}";
             }
             File.AppendAllText(_logFilePath, logEntry + Environment.NewLine);
-            
-            /*var originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = level == LogLevel.Error ? ConsoleColor.Red : level == LogLevel.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
-            Console.WriteLine(logEntry);
-            Console.ForegroundColor = originalColor;*/
         }
 
         public void Info(string message) => Log(LogLevel.Info, message);

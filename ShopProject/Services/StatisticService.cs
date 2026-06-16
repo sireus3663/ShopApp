@@ -1,28 +1,30 @@
-﻿using ShopProject.Db;
+﻿using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.Services
 {
-    public class StatisticService
+    public class StatisticService : IStatisticService
     {
-        private readonly OrderRepository _orderRepository;
-        private readonly ProductRepository _productRepository;
-        private readonly DiscountService _discountService;
-        public StatisticService(OrderRepository orderRepository, ProductRepository productRepository, DiscountService discountService)
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IDiscountService _discountService;
+
+        public StatisticService(IOrderRepository orderRepository, IProductRepository productRepository, IDiscountService discountService)
         {
             _orderRepository = orderRepository;
             _productRepository = productRepository;
             _discountService = discountService;
         }
+
         public List<Order> GetProductSales(Guid productId)
         {
             return _orderRepository.GetByProduct(productId);
         }
+
         public ProductStatistic GetProductStatistic(Guid productId)
         {
             var product = _productRepository.GetById(productId);
@@ -32,7 +34,7 @@ namespace ShopProject.Services
             bool HasDiscount;
             decimal FinalPrice;
             decimal DiscountPercent;
-            if(discount == null)
+            if (discount == null)
             {
                 HasDiscount = false;
                 FinalPrice = product.Price;
@@ -44,7 +46,6 @@ namespace ShopProject.Services
                 FinalPrice = _discountService.CalculatePrice(product);
                 DiscountPercent = discount.Percent;
             }
-            if (discount == null) { }
             ProductStatistic statistic = new ProductStatistic
             (
                 product.Name,
@@ -57,6 +58,7 @@ namespace ShopProject.Services
             );
             return statistic;
         }
+
         public record ProductStatistic
         (
             string ProductName,

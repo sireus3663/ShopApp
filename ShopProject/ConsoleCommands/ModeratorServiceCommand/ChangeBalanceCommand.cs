@@ -1,24 +1,20 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
 {
     public class ChangeBalanceCommand : BaseCommand
     {
-        private readonly ModeratorService _moderatorService;
-        private readonly AuthService _authService;
+        private readonly IModeratorService _moderatorService;
+        private readonly IAuthService _authService;
 
         public override string Name => "set-balance";
         public override string Description => "Изменить баланс пользователя. Использование: set-balance <email> <сумма>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
-        public ChangeBalanceCommand(ModeratorService moderatorService, AuthService authService)
+        public ChangeBalanceCommand(IModeratorService moderatorService, IAuthService authService)
         {
             _moderatorService = moderatorService;
             _authService = authService;
@@ -26,16 +22,46 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
 
         public override void Execute(string[] args)
         {
-            if (args.Length < 2) { Error("Укажите email и сумму"); return; }
-            if (_authService.currentUser == null) { Error("Сначал выполните вход"); return; }
-            if (!decimal.TryParse(args[1], out var newBalance)) { Error("Сумма должна быть числом"); return; }
-            
+            if (args.Length < 2)
+            {
+                Error("Укажите email и сумму");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[0]))
+            {
+                Error("Email не может быть пустым");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[1]))
+            {
+                Error("Сумма не может быть пустой");
+                return;
+            }
+
+            var user = _authService.CurrentUser;
+            if (user == null)
+            {
+                Error("Сначала выполните вход");
+                return;
+            }
+
+            if (!decimal.TryParse(args[1], out var newBalance) || newBalance < 0)
+            {
+                Error("Сумма должна быть положительным числом");
+                return;
+            }
+
             try
             {
-                _moderatorService.ChangeUserBalance(args[0], newBalance);
-                Success("Баланс успешно изменён");
+                _moderatorService.ChangeUserBalance(args[0].Trim(), newBalance);
+                Success($"Баланс пользователя {args[0]} успешно изменён на {newBalance} руб.");
             }
-            catch (Exception ex) { Error(ex.Message); }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }
         }
     }
 }

@@ -1,22 +1,18 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.UserServiceCommand
 {
     public class ProfileCommand : BaseCommand
     {
-        private readonly UserService _userService;
-        private readonly AuthService _authService;
+        private readonly IUserService _userService;
+        private readonly IAuthService _authService;
 
         public override string Name => "profile";
         public override string Description => "Показать профиль";
 
-        public ProfileCommand(UserService userService, AuthService authService)
+        public ProfileCommand(IUserService userService, IAuthService authService)
         {
             _userService = userService;
             _authService = authService;
@@ -24,12 +20,21 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
 
         public override void Execute(string[] args)
         {
-            if(_authService.currentUser == null) { Error("Сначала выполните вход"); return; }   
+            var user = _authService.CurrentUser;
+            if (user == null)
+            {
+                Error("Сначала выполните вход");
+                return;
+            }
+
             try
             {
                 _userService.ShowProfile();
             }
-            catch (Exception ex) { Error(ex.Message); }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }
         }
     }
 }

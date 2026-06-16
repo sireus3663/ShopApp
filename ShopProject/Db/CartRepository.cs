@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
+using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ShopProject.Db
 {
-    public class CartRepository : BaseRepository<Cart>
+    public class CartRepository : BaseRepository<Cart>, ICartRepository
     {
         public CartRepository(AppDbContext context) : base(context) { }
 
@@ -45,6 +46,19 @@ namespace ShopProject.Db
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Cart>> GetUserCartWithProductsAsync(Guid userId)
+        {
+            return await _dbSet
+                .Where(c => c.UserId == userId)
+                .Include(c => c.Product)
+                .ToListAsync();
         }
     }
 }

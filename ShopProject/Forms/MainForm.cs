@@ -16,7 +16,6 @@ namespace ShopProject.Forms
         private Panel headerPanel;
         private Panel catalogPanel;
         private FlowLayoutPanel productsFlow;
-        private Label cartCountLabel;
         private Label userInfoLabel;
         private TextBox searchBox;
         private ComboBox categoryFilter;
@@ -29,8 +28,9 @@ namespace ShopProject.Forms
         private MainViewModel _viewModel;
         private bool _isLoading = false;
 
+        private Panel filterPanel;
+
         private Button searchBtn;
-        private Label favLabel;
 
         private int _currentPage = 1;
         private int _pageSize = 12;
@@ -52,6 +52,8 @@ namespace ShopProject.Forms
             InitializeComponent();
             SubscribeEvents();
             LoadData();
+
+            this.FormClosing += MainForm_FormClosing;
         }
 
         private void CheckDatabaseConnection()
@@ -80,7 +82,8 @@ namespace ShopProject.Forms
         private void InitializeServices()
         {
             var configService = new AppConfigService();
-            _authService = new AuthService(_context, configService);
+            var userRepo = new UserRepository(_context);  
+            _authService = new AuthService(userRepo, configService);  
             _productRepo = new ProductRepository(_context);
             var cartRepo = new CartRepository(_context);
             _cartService = new CartService(cartRepo, _authService);
@@ -89,7 +92,7 @@ namespace ShopProject.Forms
 
             var discountRepo = new DiscountRepository(_context);
             _discountService = new DiscountService(discountRepo, _authService, _productRepo);
-            _userService = new UserService(_context, _authService, new LoggerService());
+            _userService = new UserService(userRepo, _authService, new LoggerService());  
 
             _viewModel = new MainViewModel(_authService, _productRepo, _cartService, favoriteService);
             _productService = new ProductService(_productRepo, _authService);
@@ -102,7 +105,6 @@ namespace ShopProject.Forms
                 _viewModel.LoadFavorites();
                 LoadCategories();
                 _ = LoadProductsAsync();
-                UpdateCartCount();
                 UpdateRoleSidebarContent();
                 UpdateUserLabel();
             }
@@ -122,7 +124,6 @@ namespace ShopProject.Forms
         private void SubscribeEvents()
         {
             searchBtn.Click += async (s, e) => await LoadProductsAsync();
-            favLabel.Click += (s, e) => ShowFavorites();
             categoryFilter.SelectedIndexChanged += async (s, e) => await LoadProductsAsync();
         }
 
@@ -152,44 +153,6 @@ namespace ShopProject.Forms
             };
             headerPanel.Controls.Add(logoLabel);
 
-            var homeButton = new Button
-            {
-                Text = "Главная",
-                Location = new Point(115, 16),
-                Size = new Size(80, 32),
-                BackColor = Color.FromArgb(80, 80, 85),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
-            };
-            homeButton.Click += async (s, e) =>
-            {
-                roleSidebar.Visible = false;
-                cartSidebar.Visible = false;
-                profilePanel.Visible = false;
-
-                searchBox.Text = "";
-                categoryFilter.SelectedIndex = 0;
-                if (txtPriceFrom != null) txtPriceFrom.Text = "";
-                if (txtPriceTo != null) txtPriceTo.Text = "";
-                _currentPage = 1;
-                try
-                {
-                    LoadCategories();
-                    if (_viewModel.IsAuthenticated)
-                    {
-                        _viewModel.LoadFavorites();
-                    }
-                    await LoadProductsAsync();
-                    UpdateCartCount();
-                }
-                catch (Exception ex)
-                {
-                    ErrorForm.Show($"Ошибка обновления: {ex.Message}", ex);
-                }
-            };
-            headerPanel.Controls.Add(homeButton);
-
             searchBox = new TextBox
             {
                 Location = new Point(210, 16),
@@ -215,7 +178,7 @@ namespace ShopProject.Forms
             var rightPanel = new Panel
             {
                 Dock = DockStyle.Right,
-                Width = 350, 
+                Width = 350,
                 Height = 65,
                 BackColor = Color.Transparent
             };
@@ -225,33 +188,8 @@ namespace ShopProject.Forms
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(0, 18, 20, 0) 
+                Padding = new Padding(0, 18, 20, 0)
             };
-
-            favLabel = new Label
-            {
-                Text = "Избранное",
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 10),
-                Size = new Size(85, 30),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Cursor = Cursors.Hand
-            };
-            favLabel.Click += (s, e) => ShowFavorites();
-            flowRightPanel.Controls.Add(favLabel);
-
-            cartCountLabel = new Label
-            {
-                Text = "Корзина (0)",
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 10),
-                Size = new Size(120, 30), 
-                TextAlign = ContentAlignment.MiddleCenter,
-                Cursor = Cursors.Hand,
-                AutoSize = false
-            };
-            cartCountLabel.Click += ToggleCartSidebar;
-            flowRightPanel.Controls.Add(cartCountLabel);
 
             userInfoLabel = new Label
             {
@@ -269,7 +207,7 @@ namespace ShopProject.Forms
             rightPanel.Controls.Add(flowRightPanel);
             headerPanel.Controls.Add(rightPanel);
 
-            var filterPanel = new Panel
+            filterPanel = new Panel
             {
                 Dock = DockStyle.Left,
                 Width = 220,
@@ -325,7 +263,8 @@ namespace ShopProject.Forms
                 Size = new Size(80, 25),
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(60, 60, 60),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = "от"
             };
             filterPanel.Controls.Add(txtPriceFrom);
 
@@ -336,7 +275,8 @@ namespace ShopProject.Forms
                 Size = new Size(80, 25),
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(60, 60, 60),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = "до"
             };
             filterPanel.Controls.Add(txtPriceTo);
 
@@ -409,28 +349,10 @@ namespace ShopProject.Forms
 
             profilePanel = new Panel
             {
-                Dock = DockStyle.Right,
-                Width = 350,
+                Dock = DockStyle.Fill,
                 BackColor = Color.White,
                 Visible = false
             };
-
-            var profileHeader = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 50,
-                BackColor = Color.FromArgb(45, 45, 48)
-            };
-            var profileTitle = new Label
-            {
-                Text = "Мой профиль",
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(20, 12),
-                AutoSize = true
-            };
-            profileHeader.Controls.Add(profileTitle);
-            profilePanel.Controls.Add(profileHeader);
 
             catalogPanel = new Panel
             {
@@ -452,11 +374,11 @@ namespace ShopProject.Forms
 
             this.Controls.Add(paginationPanel);
             this.Controls.Add(catalogPanel);
-            this.Controls.Add(profilePanel);
             this.Controls.Add(roleSidebar);
             this.Controls.Add(cartSidebar);
             this.Controls.Add(filterPanel);
             this.Controls.Add(headerPanel);
+            this.Controls.Add(profilePanel);
         }
 
         private void LoadCategories()
@@ -513,7 +435,6 @@ namespace ShopProject.Forms
                 }
                 _currentPage = 1;
                 await LoadProductsAsync();
-                UpdateCartCount();
             }
             catch (Exception ex)
             {
@@ -538,11 +459,11 @@ namespace ShopProject.Forms
                 Padding = new Padding(10, 5, 10, 5)
             };
 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));  
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F)); 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F)); 
-            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));  
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
+            tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
             var prevBtn = new Button
             {
@@ -740,7 +661,7 @@ namespace ShopProject.Forms
             {
                 var priceLabel = new Label
                 {
-                    Text = $"{product.Price:N0} \u20BD",
+                    Text = $"{product.Price:N0} ₽",
                     Location = new Point(7, 147),
                     Size = new Size(133, 17),
                     Font = new Font("Segoe UI", 9, FontStyle.Strikeout),
@@ -750,7 +671,7 @@ namespace ShopProject.Forms
 
                 var discountPriceLabel = new Label
                 {
-                    Text = $"{finalPrice:N0} \u20BD",
+                    Text = $"{finalPrice:N0} ₽",
                     Location = new Point(7, 164),
                     Size = new Size(133, 17),
                     Font = new Font("Segoe UI", 10, FontStyle.Bold),
@@ -763,7 +684,7 @@ namespace ShopProject.Forms
             {
                 var priceLabel = new Label
                 {
-                    Text = $"{product.Price:N0} \u20BD",
+                    Text = $"{product.Price:N0} ₽",
                     Location = new Point(7, 150),
                     Size = new Size(133, 20),
                     Font = new Font("Segoe UI", 10, FontStyle.Bold),
@@ -775,7 +696,7 @@ namespace ShopProject.Forms
 
             var cartButton = new Button
             {
-                Text = "\uD83D\uDED2",
+                Text = "🛒",
                 Location = new Point(7, 193),
                 Size = new Size(63, 21),
                 BackColor = Color.FromArgb(80, 80, 85),
@@ -797,7 +718,7 @@ namespace ShopProject.Forms
             bool isFavorite = _viewModel.IsFavorite(product.Id);
             var favButton = new Button
             {
-                Text = isFavorite ? "\u2605" : "\u2606",
+                Text = isFavorite ? "★" : "☆",
                 Location = new Point(77, 193),
                 Size = new Size(63, 21),
                 BackColor = Color.White,
@@ -833,7 +754,6 @@ namespace ShopProject.Forms
             try
             {
                 _viewModel.AddToCart(productId);
-                UpdateCartCount();
                 MessageBox.Show("Товар добавлен в корзину", "Успешно");
             }
             catch (Exception ex)
@@ -854,203 +774,8 @@ namespace ShopProject.Forms
             {
                 _viewModel.ToggleFavorite(productId);
                 bool isFavorite = _viewModel.IsFavorite(productId);
-                favButton.Text = isFavorite ? "\u2605" : "\u2606";
+                favButton.Text = isFavorite ? "★" : "☆";
                 favButton.ForeColor = isFavorite ? Color.FromArgb(200, 200, 50) : Color.FromArgb(150, 150, 150);
-            }
-            catch (Exception ex)
-            {
-                ErrorForm.Show(ex.Message, ex);
-            }
-        }
-
-        private void UpdateCartCount()
-        {
-            cartCountLabel.Text = $"Корзина ({_viewModel.GetCartItemsCount()})";
-        }
-
-        private async void ToggleCartSidebar(object sender, EventArgs e)
-        {
-            roleSidebar.Visible = false;
-            profilePanel.Visible = false;
-            isSidebarVisible = !isSidebarVisible;
-            cartSidebar.Visible = isSidebarVisible;
-            if (isSidebarVisible)
-            {
-                await LoadCartContentAsync();
-            }
-        }
-
-        private async Task LoadCartContentAsync()
-        {
-            for (int i = cartSidebar.Controls.Count - 1; i >= 1; i--)
-            {
-                cartSidebar.Controls[i].Dispose();
-            }
-
-            if (!_viewModel.IsAuthenticated)
-            {
-                var emptyLabel = new Label
-                {
-                    Text = "Войдите в аккаунт\nчтобы увидеть корзину",
-                    ForeColor = Color.Gray,
-                    Location = new Point(80, 150),
-                    Size = new Size(200, 50),
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-                cartSidebar.Controls.Add(emptyLabel);
-                return;
-            }
-
-            var cartItems = _viewModel.GetCurrentUserCart();
-            if (cartItems.Count == 0)
-            {
-                var emptyLabel = new Label
-                {
-                    Text = "Корзина пуста",
-                    ForeColor = Color.Gray,
-                    Location = new Point(120, 150),
-                    Size = new Size(150, 30),
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-                cartSidebar.Controls.Add(emptyLabel);
-                return;
-            }
-
-            int y = 70;
-            decimal total = 0;
-
-            foreach (var item in cartItems)
-            {
-                var product = _viewModel.GetProduct(item.ProductId);
-                if (product == null) continue;
-
-                decimal itemTotal = product.Price * item.Count;
-                total += itemTotal;
-
-                var itemPanel = new Panel
-                {
-                    Location = new Point(15, y),
-                    Size = new Size(320, 65),
-                    BackColor = Color.FromArgb(250, 250, 250),
-                    BorderStyle = BorderStyle.FixedSingle
-                };
-
-                var nameLabel = new Label
-                {
-                    Text = product.Name.Length > 20 ? product.Name.Substring(0, 17) + "..." : product.Name,
-                    Location = new Point(10, 10),
-                    Size = new Size(180, 20),
-                    Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(60, 60, 60)
-                };
-                itemPanel.Controls.Add(nameLabel);
-
-                var priceLabel = new Label
-                {
-                    Text = $"{product.Price:N0} руб. x {item.Count} = {itemTotal:N0} руб.",
-                    Location = new Point(10, 35),
-                    Size = new Size(180, 20),
-                    Font = new Font("Segoe UI", 9),
-                    ForeColor = Color.FromArgb(100, 100, 100)
-                };
-                itemPanel.Controls.Add(priceLabel);
-
-                var removeBtn = new Button
-                {
-                    Text = "Удалить",
-                    Location = new Point(220, 18),
-                    Size = new Size(80, 30),
-                    BackColor = Color.FromArgb(200, 100, 100),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 9)
-                };
-                removeBtn.Click += async (s, e) => await RemoveFromCartAsync(item.ProductId);
-                itemPanel.Controls.Add(removeBtn);
-
-                cartSidebar.Controls.Add(itemPanel);
-                y += 75;
-            }
-
-            var totalLabel = new Label
-            {
-                Text = $"Итого: {_viewModel.GetCartTotalPrice():N0} руб.",
-                Location = new Point(20, y + 10),
-                Size = new Size(200, 30),
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60)
-            };
-            cartSidebar.Controls.Add(totalLabel);
-
-            var buyButton = new Button
-            {
-                Text = "Оформить заказ",
-                Location = new Point(20, y + 50),
-                Size = new Size(310, 45),
-                BackColor = Color.FromArgb(80, 80, 85),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 11, FontStyle.Bold)
-            };
-            buyButton.Click += async (s, e) => await BuyCartAsync();
-            cartSidebar.Controls.Add(buyButton);
-        }
-
-        private async Task BuyCartAsync()
-        {
-            if (!_viewModel.IsAuthenticated)
-            {
-                MessageBox.Show("Войдите в аккаунт", "Требуется авторизация");
-                return;
-            }
-
-            var cart = _viewModel.GetCurrentUserCart();
-            if (cart.Count == 0)
-            {
-                MessageBox.Show("Корзина пуста", "Ошибка");
-                return;
-            }
-
-            var total = _viewModel.GetCartTotalPrice();
-
-            var confirm = MessageBox.Show(
-                $"Подтвердите покупку на сумму {total:N0} руб.\n\nТекущий баланс: {_viewModel.CurrentUser.Balance:N0} руб.",
-                "Оформление заказа",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (confirm != DialogResult.Yes) return;
-
-            try
-            {
-                var orderService = new OrderService(_authService, _cartService,
-                    new OrderRepository(_context), _productRepo,
-                    new UserRepository(_context),
-                    new DiscountService(new DiscountRepository(_context), _authService, _productRepo),
-                    _context);
-
-                orderService.BuyCart();
-
-                MessageBox.Show("Покупка успешно оформлена! Спасибо за покупку!", "Успешно");
-
-                UpdateCartCount();
-                await LoadCartContentAsync();
-                await LoadProductsAsync();
-                LoadProfileContent();
-            }
-            catch (Exception ex)
-            {
-                ErrorForm.Show(ex.Message, ex);
-            }
-        }
-
-        private async Task RemoveFromCartAsync(Guid productId)
-        {
-            try
-            {
-                _viewModel.RemoveFromCart(productId);
-                UpdateCartCount();
-                await LoadCartContentAsync();
             }
             catch (Exception ex)
             {
@@ -1134,231 +859,37 @@ namespace ShopProject.Forms
 
         private void ShowProfilePanel()
         {
+            catalogPanel.Visible = false;
+            paginationPanel.Visible = false;
+            filterPanel.Visible = false;
             cartSidebar.Visible = false;
             roleSidebar.Visible = false;
+
+            headerPanel.Visible = false;
+
+            profilePanel.Controls.Clear();
+
+            var profileForm = new ProfileForm(_authService, _userService, _context, _productService);
+            profileForm.Owner = this;
+            profileForm.TopLevel = false;
+            profileForm.FormBorderStyle = FormBorderStyle.None;
+            profileForm.Dock = DockStyle.Fill;
+            profileForm.Visible = true;
+
+            profilePanel.Controls.Add(profileForm);
             profilePanel.Visible = true;
-            LoadProfileContent();
+            profilePanel.BringToFront();
+
+            profileForm.RefreshData();
         }
 
-        private void LoadProfileContent()
+        public void CloseProfilePanel()
         {
-            for (int i = profilePanel.Controls.Count - 1; i >= 1; i--)
-            {
-                profilePanel.Controls[i].Dispose();
-            }
-
-            if (!_viewModel.IsAuthenticated)
-            {
-                return;
-            }
-
-            var user = _viewModel.CurrentUser;
-            int y = 80;
-
-            var avatarPanel = new Panel
-            {
-                Location = new Point(125, y),
-                Size = new Size(100, 100),
-                BackColor = Color.FromArgb(200, 200, 200),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            var avatarLabel = new Label
-            {
-                Text = user.Name.Substring(0, 1).ToUpper(),
-                Font = new Font("Segoe UI", 36, FontStyle.Bold),
-                ForeColor = Color.White,
-                Location = new Point(35, 25),
-                AutoSize = true
-            };
-            avatarPanel.Controls.Add(avatarLabel);
-            profilePanel.Controls.Add(avatarPanel);
-            y += 110;
-
-            var nameLabel = new Label
-            {
-                Text = user.Name,
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(90, y),
-                Size = new Size(200, 35),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            profilePanel.Controls.Add(nameLabel);
-            y += 45;
-
-            var roleLabel = new Label
-            {
-                Text = $"Роль: {user.Role}",
-                Font = new Font("Segoe UI", 12),
-                ForeColor = Color.FromArgb(100, 100, 100),
-                Location = new Point(30, y),
-                Size = new Size(290, 30)
-            };
-            profilePanel.Controls.Add(roleLabel);
-            y += 35;
-
-            var emailLabel = new Label
-            {
-                Text = $"Email: {user.Email}",
-                Font = new Font("Segoe UI", 12),
-                ForeColor = Color.FromArgb(100, 100, 100),
-                Location = new Point(30, y),
-                Size = new Size(290, 30)
-            };
-            profilePanel.Controls.Add(emailLabel);
-            y += 35;
-
-            var balanceLabel = new Label
-            {
-                Text = $"Баланс: {user.Balance:N0} руб.",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(80, 120, 80),
-                Location = new Point(30, y),
-                Size = new Size(290, 30)
-            };
-            profilePanel.Controls.Add(balanceLabel);
-            y += 35;
-
-            var statusLabel = new Label
-            {
-                Text = $"Статус: {(user.IsBlocked ? "Заблокирован" : "Активен")}",
-                Font = new Font("Segoe UI", 12),
-                ForeColor = user.IsBlocked ? Color.FromArgb(200, 80, 80) : Color.FromArgb(80, 120, 80),
-                Location = new Point(30, y),
-                Size = new Size(290, 30)
-            };
-            profilePanel.Controls.Add(statusLabel);
-            y += 50;
-
-            var separator = new Label
-            {
-                Text = new string('-', 30),
-                ForeColor = Color.FromArgb(200, 200, 200),
-                Location = new Point(30, y),
-                Size = new Size(290, 20),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            profilePanel.Controls.Add(separator);
-            y += 30;
-
-            var ordersBtn = new Button
-            {
-                Text = "Мои заказы",
-                Location = new Point(30, y),
-                Size = new Size(290, 40),
-                BackColor = Color.FromArgb(80, 80, 85),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10)
-            };
-            ordersBtn.Click += (s, e) => MessageBox.Show("Список заказов", "Заказы");
-            profilePanel.Controls.Add(ordersBtn);
-            y += 50;
-
-            var historyBtn = new Button
-            {
-                Text = "История заказов",
-                Location = new Point(30, y),
-                Size = new Size(290, 40),
-                BackColor = Color.FromArgb(80, 80, 85),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10)
-            };
-            historyBtn.Click += (s, e) => ShowOrdersHistory();
-            profilePanel.Controls.Add(historyBtn);
-            y += 50;
-
-            if (user.Role == Role.Seller)
-            {
-                var myProductsBtn = new Button
-                {
-                    Text = "Мои товары",
-                    Location = new Point(30, y),
-                    Size = new Size(290, 40),
-                    BackColor = Color.FromArgb(80, 80, 85),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 10)
-                };
-                myProductsBtn.Click += (s, e) => ShowMyProducts();
-                profilePanel.Controls.Add(myProductsBtn);
-                y += 50;
-
-                var createProductBtn = new Button
-                {
-                    Text = "Создать товар",
-                    Location = new Point(30, y),
-                    Size = new Size(290, 40),
-                    BackColor = Color.FromArgb(80, 80, 85),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 10)
-                };
-                createProductBtn.Click += (s, e) => OpenCreateProductForm();
-                profilePanel.Controls.Add(createProductBtn);
-                y += 50;
-            }
-
-            if (user.Role == Role.Moderator || user.Role == Role.Admin)
-            {
-                var moderationBtn = new Button
-                {
-                    Text = "Модерация",
-                    Location = new Point(30, y),
-                    Size = new Size(290, 40),
-                    BackColor = Color.FromArgb(80, 80, 85),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 10)
-                };
-                moderationBtn.Click += (s, e) => OpenModerationPanel();
-                profilePanel.Controls.Add(moderationBtn);
-                y += 50;
-            }
-
-            if (user.Role == Role.Admin)
-            {
-                var adminBtn = new Button
-                {
-                    Text = "Админ панель",
-                    Location = new Point(30, y),
-                    Size = new Size(290, 40),
-                    BackColor = Color.FromArgb(200, 80, 80),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 10)
-                };
-                adminBtn.Click += (s, e) => OpenUserManagement();
-                profilePanel.Controls.Add(adminBtn);
-                y += 50;
-            }
-
-            var logoutBtn = new Button
-            {
-                Text = "Выйти из аккаунта",
-                Location = new Point(30, y + 20),
-                Size = new Size(290, 40),
-                BackColor = Color.FromArgb(180, 100, 100),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10)
-            };
-            logoutBtn.Click += (s, e) => Logout();
-            profilePanel.Controls.Add(logoutBtn);
-
-            var closeBtn = new Button
-            {
-                Text = "Закрыть",
-                Location = new Point(30, y + 70),
-                Size = new Size(290, 40),
-                BackColor = Color.FromArgb(180, 180, 180),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10)
-            };
-            closeBtn.Click += (s, e) => profilePanel.Visible = false;
-            profilePanel.Controls.Add(closeBtn);
+            profilePanel.Visible = false;
+            catalogPanel.Visible = true;
+            paginationPanel.Visible = true;
+            filterPanel.Visible = true;
+            headerPanel.Visible = true;
         }
 
         private void ShowMyProducts()
@@ -1522,13 +1053,17 @@ namespace ShopProject.Forms
                 var authService = _viewModel.GetAuthService();
                 authService.LoginById(user);
 
-                UpdateCartCount();
                 LoadProfileContent();
             }
             catch (Exception ex)
             {
                 ErrorForm.Show(ex.Message, ex);
             }
+        }
+
+        private void LoadProfileContent()
+        {
+            // Этот метод больше не используется, так как ProfileForm теперь встраивается целиком
         }
 
         private void OpenCreateProductForm()
@@ -1539,22 +1074,6 @@ namespace ShopProject.Forms
             form.ShowDialog();
 
             _ = RefreshAllData();
-        }
-
-        private void OpenProfileForm()
-        {
-            var form = new ProfileForm(_authService, _userService, _context, _productService);
-            form.ShowDialog();
-            if (form.DialogResult == DialogResult.Abort)
-            {
-                UpdateUserLabel();
-                _ = RefreshAllData();
-            }
-            else
-            {
-                UpdateUserLabel();
-                _ = RefreshAllData();
-            }
         }
 
         private void OpenModerationPanel()
@@ -1583,47 +1102,6 @@ namespace ShopProject.Forms
             consoleForm.ShowDialog();
         }
 
-        private void ShowFavorites()
-        {
-            roleSidebar.Visible = false;
-            cartSidebar.Visible = false;
-            profilePanel.Visible = false;
-            productsFlow.Controls.Clear();
-
-            try
-            {
-                if (!_viewModel.IsAuthenticated)
-                {
-                    MessageBox.Show("Войдите в аккаунт", "Требуется авторизация");
-                    _ = LoadProductsAsync();
-                    return;
-                }
-
-                var products = _viewModel.GetFavoriteProducts();
-                foreach (var product in products)
-                {
-                    var card = CreateProductCard(product);
-                    productsFlow.Controls.Add(card);
-                }
-
-                if (products.Count == 0)
-                {
-                    var emptyLabel = new Label
-                    {
-                        Text = "Избранное пусто",
-                        ForeColor = Color.Gray,
-                        Font = new Font("Segoe UI", 14),
-                        AutoSize = true
-                    };
-                    productsFlow.Controls.Add(emptyLabel);
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorForm.Show(ex.Message, ex);
-            }
-        }
-
         private void UserInfoLabel_Click(object sender, EventArgs e)
         {
             if (!_viewModel.IsAuthenticated)
@@ -1632,7 +1110,7 @@ namespace ShopProject.Forms
             }
             else
             {
-                OpenProfileForm();
+                ShowProfilePanel();
             }
         }
 
@@ -1661,7 +1139,17 @@ namespace ShopProject.Forms
             cartSidebar.Visible = false;
             profilePanel.Visible = false;
             _ = LoadProductsAsync();
-            UpdateCartCount();
+        }
+
+        public void SetSearchText(string searchText)
+        {
+            searchBox.Text = searchText;
+            _ = LoadProductsAsync();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
     }
 }

@@ -1,178 +1,111 @@
 ﻿using ShopProject.ConsoleCommands;
 using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
 using ShopProject.Services;
+using ShopProject.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ShopProject
 {
-    public static class ConsoleMode
+    public class ConsoleMode
     {
-        public static void Run(string autoLoginEmail = null) 
+        private readonly ILoggerService _logger;
+        private readonly IAppConfigService _configService;
+        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
+        private readonly IProductService _productService;
+        private readonly ICartService _cartService;
+        private readonly IFavoriteService _favoriteService;
+        private readonly IOrderService _orderService;
+        private readonly IModeratorService _moderatorService;
+        private readonly IDiscountService _discountService;
+        private readonly IProductRepository _productRepo;
+        private readonly IOrderRepository _orderRepo;
+        private readonly IUserRepository _userRepo;
+        private readonly AppDbContext _context;
+        private readonly CommandRegistry _registry;
+
+        public ConsoleMode(
+            ILoggerService logger,
+            IAppConfigService configService,
+            IAuthService authService,
+            IUserService userService,
+            IProductService productService,
+            ICartService cartService,
+            IFavoriteService favoriteService,
+            IOrderService orderService,
+            IModeratorService moderatorService,
+            IDiscountService discountService,
+            IProductRepository productRepo,
+            IOrderRepository orderRepo,
+            IUserRepository userRepo,
+            AppDbContext context,
+            CommandRegistry registry)
         {
-            var logger = new LoggerService();
-            var configService = new AppConfigService();
-            var startup = new StartupService(logger, configService);
+            _logger = logger;
+            _configService = configService;
+            _authService = authService;
+            _userService = userService;
+            _productService = productService;
+            _cartService = cartService;
+            _favoriteService = favoriteService;
+            _orderService = orderService;
+            _moderatorService = moderatorService;
+            _discountService = discountService;
+            _productRepo = productRepo;
+            _orderRepo = orderRepo;
+            _userRepo = userRepo;
+            _context = context;
+            _registry = registry;
+        }
 
-            if (startup.IsFirstLaunch())
-            {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("Первый запуск программы. Подключение к базе данных");
-                Console.ResetColor();
-                logger.Info("Первый запуск приложения");
-            }
-            else
-            {
-                logger.Info("Запуск приложения");
-            }
+        public void Run(string autoLoginEmail = null)
+        {
+            ShowBanner();
 
-            AppDbContext? context = startup.TryConnect();
+            // Проверяем подключение к БД
+            if (!CheckDatabaseConnection())
+                return;
 
-            if (context == null)
-            {
-                context = startup.PromptPasswordUntilConnected();
-                if (context == null)
-                {
-                    logger.Warning("Пользователь отказался от подключения к БД. Завершение.");
-                    Console.WriteLine("Выход из программы.");
-                    return;
-                }
-                logger.Info("Подключение к БД установлено после ввода пароля");
-            }
-            else
-            {
-                logger.Info("Подключение к БД установлено");
-            }
+            // Создаем тестовых пользователей
+            CreateTestUsers();
 
-            var userRepo = new UserRepository(context);
-            var productRepo = new ProductRepository(context);
-            var cartRepo = new CartRepository(context);
-            var orderRepo = new OrderRepository(context);
-            var favoriteRepo = new FavoriteRepository(context);
-            var discountRepo = new DiscountRepository(context);
+            // Восстанавливаем сессию
+            RestoreSession();
 
-            var authService = new AuthService(context, configService);
-            var userService = new UserService(context, authService, logger);
-            var productService = new ProductService(productRepo, authService);
-            var discountService = new DiscountService(discountRepo, authService, productRepo);
-            var cartService = new CartService(cartRepo, authService);
-            var favoriteService = new FavoriteService(favoriteRepo, authService);
-            var orderService = new OrderService(authService, cartService, orderRepo, productRepo, userRepo, discountService, context);
-            var moderatorService = new ModeratorService(userRepo, authService);
-
+            // Автоматический вход
             if (!string.IsNullOrEmpty(autoLoginEmail))
             {
-                var user = userRepo.GetByEmail(autoLoginEmail);
-                if (user != null)
-                {
-                    authService.LoginById(user);
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"[OK] Автоматический вход: {user.Name} (Роль: {user.Role})");
-                    Console.ResetColor();
-                    logger.Info($"Авто-вход пользователя {user.Email} из WinForms консоли");
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine($"[WARNING] Пользователь {autoLoginEmail} не найден");
-                    Console.ResetColor();
-                }
+                AutoLogin(autoLoginEmail);
             }
 
-            string adminEmail = "admin@shop.com";
-            string adminPassword = "Admin123";
-            if (!userRepo.Exists(adminEmail))
-            {
-                var admin = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Administrator",
-                    Email = adminEmail,
-                    Balance = 999999,
-                    Role = Role.Admin,
-                    IsBlocked = false
-                };
-                admin.SetPassword(adminPassword);
-                userRepo.Add(admin);
-                Console.WriteLine($"[OK] Создан администратор: {adminEmail} / {adminPassword}");
-            }
-            else { Console.WriteLine($"[i] Администратор уже существует: {adminEmail}"); }
+            // Регистрируем команды
+            CommandInitializer.RegisterAll(
+                _registry,
+                _logger,
+                _authService,
+                _userService,
+                _cartService,
+                _favoriteService,
+                _productService,
+                _orderService,
+                _moderatorService,
+                _discountService,
+                _productRepo,
+                _orderRepo,
+                _userRepo,
+                _context
+            );
 
-            string moderatorEmail = "moder@shop.com";
-            string moderatorPassword = "Moder123";
-            if (!userRepo.Exists(moderatorEmail))
-            {
-                var moderator = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Moderator",
-                    Email = moderatorEmail,
-                    Balance = 10000,
-                    Role = Role.Moderator,
-                    IsBlocked = false
-                };
-                moderator.SetPassword(moderatorPassword);
-                userRepo.Add(moderator);
-                Console.WriteLine($"[OK] Создан модератор: {moderatorEmail} / {moderatorPassword}");
-            }
-            else { Console.WriteLine($"[i] Модератор уже существует: {moderatorEmail}"); }
+            ShowWelcomeMessage();
 
-            string sellerEmail = "seller@shop.com";
-            string sellerPassword = "Seller123";
-            if (!userRepo.Exists(sellerEmail))
-            {
-                var seller = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Seller",
-                    Email = sellerEmail,
-                    Balance = 50000,
-                    Role = Role.Seller,
-                    IsBlocked = false
-                };
-                seller.SetPassword(sellerPassword);
-                userRepo.Add(seller);
-                Console.WriteLine($"[OK] Создан продавец: {sellerEmail} / {sellerPassword}");
-            }
-            else { Console.WriteLine($"[i] Продавец уже существует: {sellerEmail}"); }
-
-            string buyerEmail = "buyer@shop.com";
-            string buyerPassword = "Buyer123";
-            if (!userRepo.Exists(buyerEmail))
-            {
-                var buyer = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Buyer",
-                    Email = buyerEmail,
-                    Balance = 10000,
-                    Role = Role.Buyer,
-                    IsBlocked = false
-                };
-                buyer.SetPassword(buyerPassword);
-                userRepo.Add(buyer);
-                Console.WriteLine($"[OK] Создан покупатель: {buyerEmail} / {buyerPassword}");
-            }
-            else { Console.WriteLine($"[i] Покупатель уже существует: {buyerEmail}"); }
-
-            var registry = new CommandRegistry(logger);
-            CommandInitializer.RegisterAll(registry, logger, authService, userService, cartService,
-                favoriteService, productService, orderService, moderatorService, discountService,
-                productRepo, orderRepo, userRepo, context);
-
-            Console.WriteLine("\n=== ShopProject ====");
-            Console.WriteLine("Тестовые пользователи:");
-            Console.WriteLine($"  Админ:      {adminEmail} / {adminPassword}");
-            Console.WriteLine($"  Модератор:  {moderatorEmail} / {moderatorPassword}");
-            Console.WriteLine($"  Продавец:   {sellerEmail} / {sellerPassword}");
-            Console.WriteLine($"  Покупатель: {buyerEmail} / {buyerPassword}");
-            Console.WriteLine();
-
-            var menuCommand = new MenuCommand(authService, registry);
+            var menuCommand = new MenuCommand(_authService, _registry);
 
             while (true)
             {
-                var user = authService.currentUser;
+                var user = _authService.currentUser;
                 Console.Write(user != null ? $"\n[{user.Name}]> " : "\n> ");
 
                 var input = Console.ReadLine()?.Trim();
@@ -184,7 +117,7 @@ namespace ShopProject
                 }
                 else if (input.ToLower() == "help")
                 {
-                    registry.ShowHelp();
+                    _registry.ShowHelp();
                 }
                 else if (input.ToLower() == "clear")
                 {
@@ -204,10 +137,10 @@ namespace ShopProject
                     var cmdName = parts[0];
                     var cmdArgs = parts.Skip(1).ToArray();
 
-                    var command = registry.Get(cmdName);
+                    var command = _registry.Get(cmdName);
                     if (command != null)
                     {
-                        registry.Execute(cmdName, cmdArgs);
+                        _registry.Execute(cmdName, cmdArgs);
                     }
                     else
                     {
@@ -217,6 +150,134 @@ namespace ShopProject
                     }
                 }
             }
+        }
+
+        private bool CheckDatabaseConnection()
+        {
+            try
+            {
+                _context.Database.OpenConnection();
+                _context.Database.CloseConnection();
+                _context.Database.Migrate();
+                _logger.Info("Подключение к БД установлено");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Ошибка подключения к БД", ex);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Ошибка подключения к базе данных. Проверьте настройки.");
+                Console.ResetColor();
+                return false;
+            }
+        }
+
+        private void CreateTestUsers()
+        {
+            CreateTestUser("admin@shop.com", "Administrator", "Admin123", Role.Admin, 999999);
+            CreateTestUser("moder@shop.com", "Moderator", "Moder123", Role.Moderator, 10000);
+            CreateTestUser("seller@shop.com", "Seller", "Seller123", Role.Seller, 50000);
+            CreateTestUser("buyer@shop.com", "Buyer", "Buyer123", Role.Buyer, 10000);
+        }
+
+        private void CreateTestUser(string email, string name, string password, Role role, decimal balance)
+        {
+            if (!_userRepo.Exists(email))
+            {
+                var user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Name = name,
+                    Email = email,
+                    Balance = balance,
+                    Role = role,
+                    IsBlocked = false
+                };
+                user.SetPassword(password);
+                _userRepo.Add(user);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"[OK] Создан {role}: {email} / {password}");
+                Console.ResetColor();
+            }
+        }
+
+        private void RestoreSession()
+        {
+            var userId = _configService.GetCurrentUserId();
+            if (userId == null) return;
+
+            try
+            {
+                var user = _userRepo.GetById(userId.Value);
+                if (user != null)
+                {
+                    _authService.LoginById(user);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[OK] Сессия восстановлена: {user.Name} ({user.Role})");
+                    Console.ResetColor();
+                    _logger.Info($"Сессия восстановлена для пользователя {user.Email}");
+                }
+                else
+                {
+                    _configService.SetCurrentUserId(null);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Ошибка при восстановлении сессии", ex);
+                _configService.SetCurrentUserId(null);
+            }
+        }
+
+        private void AutoLogin(string email)
+        {
+            var user = _userRepo.GetByEmail(email);
+            if (user != null)
+            {
+                _authService.LoginById(user);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"[OK] Автоматический вход: {user.Name} (Роль: {user.Role})");
+                Console.ResetColor();
+                _logger.Info($"Авто-вход пользователя {user.Email} из WinForms консоли");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[WARNING] Пользователь {email} не найден");
+                Console.ResetColor();
+            }
+        }
+
+        private static void ShowBanner()
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine(@"
+╔══════════════════════════════════════════════════════╗
+║                                                      ║
+║   ███████╗██╗  ██╗ ██████╗ ██████╗  █████╗ ██████╗  ║
+║   ██╔════╝██║  ██║██╔═══██╗██╔══██╗██╔══██╗██╔══██╗ ║
+║   ███████╗███████║██║   ██║██████╔╝███████║██████╔╝ ║
+║   ╚════██║██╔══██║██║   ██║██╔═══╝ ██╔══██║██╔═══╝  ║
+║   ███████║██║  ██║╚██████╔╝██║     ██║  ██║██║      ║
+║   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝      ║
+║                                                      ║
+║           Добро пожаловать в ShopApp!                ║
+╚══════════════════════════════════════════════════════╝
+");
+            Console.ResetColor();
+        }
+
+        private void ShowWelcomeMessage()
+        {
+            Console.WriteLine("\n📌 Тестовые пользователи:");
+            Console.WriteLine($"  🔑 Админ:      admin@shop.com / Admin123");
+            Console.WriteLine($"  🔑 Модератор:  moder@shop.com / Moder123");
+            Console.WriteLine($"  🔑 Продавец:   seller@shop.com / Seller123");
+            Console.WriteLine($"  🔑 Покупатель: buyer@shop.com / Buyer123");
+            Console.WriteLine();
+            Console.WriteLine("💡 Введите 'menu' для просмотра доступных команд");
+            Console.WriteLine("💡 Введите 'help' для детальной справки");
+            Console.WriteLine();
         }
     }
 }

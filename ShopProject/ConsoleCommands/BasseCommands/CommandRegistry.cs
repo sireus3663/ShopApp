@@ -1,18 +1,16 @@
-﻿using ShopProject.Services;
+﻿using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class CommandRegistry
     {
         private readonly Dictionary<string, ICommand> _commands = new();
-        private readonly LoggerService _logger;
+        private readonly ILoggerService _logger;
 
-        public CommandRegistry(LoggerService logger)
+        public CommandRegistry(ILoggerService logger)
         {
             _logger = logger;
         }
@@ -49,12 +47,8 @@ namespace ShopProject.ConsoleCommands.BasseCommands
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-
-                Console.WriteLine(
-                    $"Ошибка выполнения: {ex.Message}"
-                );
+                Console.WriteLine($"Ошибка выполнения: {ex.Message}");
                 _logger.Error("ошибка выполнения команды", ex);
-
                 Console.ResetColor();
             }
         }

@@ -1,23 +1,25 @@
 ﻿using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ShopProject.Services
 {
-
-    public class DiscountService
+    public class DiscountService : IDiscountService
     {
-        private readonly DiscountRepository _discountRepository;
-        private readonly AuthService _authService;
-        private readonly ProductRepository _productRepository;
-        public DiscountService(DiscountRepository discountRepository, AuthService authService, ProductRepository productRepository) {
+        private readonly IDiscountRepository _discountRepository;
+        private readonly IAuthService _authService;
+        private readonly IProductRepository _productRepository;
+
+        public DiscountService(IDiscountRepository discountRepository, IAuthService authService, IProductRepository productRepository)
+        {
             _discountRepository = discountRepository;
             _authService = authService;
             _productRepository = productRepository;
         }
+
         public Discount CreateDiscount(Product product, decimal percent)
         {
             if (product == null) throw new Exception("Продукта не существует");
@@ -27,7 +29,9 @@ namespace ShopProject.Services
             if (percent < 0) throw new Exception("Процент скидки не может быть отрицательным");
             if (percent > 99) throw new Exception("Процент скидки не может быть больше 99 процентов");
             if (product.SellerId != currentUser.Id) throw new Exception("Только владелец товара может изменять/добавлять скидку");
-            Discount discount = new Discount {
+
+            Discount discount = new Discount
+            {
                 Id = Guid.NewGuid(),
                 ProductId = product.Id,
                 Percent = percent
@@ -35,10 +39,12 @@ namespace ShopProject.Services
             _discountRepository.Add(discount);
             return discount;
         }
-        public Discount GetByProduct(Guid productId)
+
+        public Discount? GetByProduct(Guid productId)
         {
             return _discountRepository.GetByProduct(productId);
         }
+
         public decimal CalculatePrice(Product product)
         {
             if (product == null) throw new Exception("Продукта не существует");
@@ -46,6 +52,7 @@ namespace ShopProject.Services
             if (disc == null) return product.Price;
             return product.Price - (product.Price * disc.Percent / 100);
         }
+
         public Discount RemoveDiscount(Guid productId)
         {
             var disc = GetByProduct(productId);

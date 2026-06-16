@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
+using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ShopProject.Db
 {
-    public class ProductRepository : BaseRepository<Product>
+    public class ProductRepository : BaseRepository<Product>, IProductRepository
     {
         public ProductRepository(AppDbContext context) : base(context) { }
 
@@ -45,6 +46,40 @@ namespace ShopProject.Db
             return await _dbSet
                 .Where(p => p.Category == category)
                 .ToListAsync();
+        }
+
+        public async Task<PaginatedResult<Product>> GetApprovedProductsPaginatedAsync(
+            string? searchText = null,
+            string? category = null,
+            decimal? priceFrom = null,
+            decimal? priceTo = null,
+            int page = 1,
+            int pageSize = 12)
+        {
+            var query = _dbSet
+                .Where(p => p.IsApproved)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchText))
+                query = query.Where(p => p.Name.Contains(searchText));
+
+            if (!string.IsNullOrEmpty(category) && category != "Все категории")
+                query = query.Where(p => p.Category == category);
+
+            if (priceFrom.HasValue)
+                query = query.Where(p => p.Price >= priceFrom.Value);
+
+            if (priceTo.HasValue)
+                query = query.Where(p => p.Price <= priceTo.Value);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PaginatedResult<Product>(items, totalCount, page, pageSize);
         }
     }
 }

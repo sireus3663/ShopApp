@@ -1,25 +1,25 @@
 using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using System;
 using System.Threading.Tasks;
 
 namespace ShopProject.Services
 {
-    public class AuthService
+    public class AuthService : IAuthService
     {
         private User? _currentUser;
-        public User? currentUser => _currentUser;
+        public User? CurrentUser => _currentUser;
 
-        private readonly UserRepository _userRepository;
-        private readonly AppConfigService? _configService;
+        private readonly IUserRepository _userRepository;
+        private readonly IAppConfigService? _configService;
 
-        public AuthService(AppDbContext context, AppConfigService? configService = null)
+        public AuthService(IUserRepository userRepository, IAppConfigService? configService = null)
         {
-            _userRepository = new UserRepository(context);
+            _userRepository = userRepository;
             _configService = configService;
         }
-
-        public User? Get_currentUser() => _currentUser;
 
         public void Login(string email, string password)
         {
@@ -29,7 +29,10 @@ namespace ShopProject.Services
             if (!_userRepository.Exists(email))
                 throw new Exception("пользователя с таким email не существует");
 
-            User user = _userRepository.GetByEmail(email);
+            User? user = _userRepository.GetByEmail(email);
+
+            if (user == null)
+                throw new Exception("пользователь не найден");
 
             if (!user.VerifyPassword(password))
                 throw new Exception("пароль неверный");
@@ -67,7 +70,10 @@ namespace ShopProject.Services
             if (!await _userRepository.ExistsAsync(email))
                 throw new Exception("пользователя с таким email не существует");
 
-            User user = await _userRepository.GetByEmailAsync(email);
+            User? user = await _userRepository.GetByEmailAsync(email);
+
+            if (user == null)
+                throw new Exception("пользователь не найден");
 
             if (!user.VerifyPassword(password))
                 throw new Exception("пароль неверный");

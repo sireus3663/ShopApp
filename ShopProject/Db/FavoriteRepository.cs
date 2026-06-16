@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
+using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ShopProject.Db
 {
-    public class FavoriteRepository : BaseRepository<Favorite>
+    public class FavoriteRepository : BaseRepository<Favorite>, IFavoriteRepository
     {
         public FavoriteRepository(AppDbContext context) : base(context) { }
 
@@ -18,7 +19,7 @@ namespace ShopProject.Db
                 .ToList();
         }
 
-        public Favorite GetFavoriteItem(Guid userId, Guid productId)
+        public Favorite? GetFavoriteItem(Guid userId, Guid productId)
         {
             return _dbSet
                 .FirstOrDefault(f => f.UserId == userId && f.ProductId == productId);
@@ -36,7 +37,7 @@ namespace ShopProject.Db
                 .ToListAsync();
         }
 
-        public async Task<Favorite> GetFavoriteItemAsync(Guid userId, Guid productId)
+        public async Task<Favorite?> GetFavoriteItemAsync(Guid userId, Guid productId)
         {
             return await _dbSet
                 .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
@@ -45,6 +46,11 @@ namespace ShopProject.Db
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
         }
     }
 }

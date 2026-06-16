@@ -1,26 +1,23 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
-using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class TopProductsCommand : BaseCommand
     {
-        private readonly OrderRepository _orderRepo;
-        private readonly ProductRepository _productRepo;
-        private readonly AuthService _authService;
+        private readonly IOrderRepository _orderRepo;
+        private readonly IProductRepository _productRepo;
+        private readonly IAuthService _authService;
 
         public override string Name => "top-products";
         public override string Description => "Топ товаров по продажам (только админ)";
         public override List<Role> AvailableFor => new List<Role> { Role.Admin };
 
-        public TopProductsCommand(OrderRepository orderRepo, ProductRepository productRepo, AuthService authService)
+        public TopProductsCommand(IOrderRepository orderRepo, IProductRepository productRepo, IAuthService authService)
         {
             _orderRepo = orderRepo;
             _productRepo = productRepo;
@@ -29,7 +26,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         public override void Execute(string[] args)
         {
             if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
-            if (_authService.currentUser.Role != Models.Role.Admin) { Error("Только администратор может просматривать статистику"); return; }
+            if (_authService.currentUser.Role != Role.Admin) { Error("Только администратор может просматривать статистику"); return; }
             var orders = _orderRepo.GetAll();
             var topProducts = orders
                 .GroupBy(o => o.ProductId)

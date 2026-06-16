@@ -1,20 +1,16 @@
-﻿using ShopProject.Db;
+﻿using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace ShopProject.Services
 {
-    public class ModeratorService
+    public class ModeratorService : IModeratorService
     {
-        private readonly UserRepository _userRepository;
-        private readonly AuthService _authService;
+        private readonly IUserRepository _userRepository;
+        private readonly IAuthService _authService;
 
-        public ModeratorService(UserRepository userRepository, AuthService authService)
+        public ModeratorService(IUserRepository userRepository, IAuthService authService)
         {
             _userRepository = userRepository;
             _authService = authService;

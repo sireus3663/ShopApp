@@ -1,26 +1,23 @@
 ﻿using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using ShopProject.Services;
 
 namespace ShopProject.Services
 {
-    public class UserService
+    public class UserService : IUserService
     {
-        private readonly UserRepository _userRepository;
-        private readonly AuthService _authService;
-        private readonly LoggerService _logger;
+        private readonly IUserRepository _userRepository;
+        private readonly IAuthService _authService;
+        private readonly ILoggerService _logger;
 
-        public UserService(AppDbContext context, AuthService authService, LoggerService logs)
+        public UserService(IUserRepository userRepository, IAuthService authService, ILoggerService logger)
         {
-            _userRepository = new UserRepository(context);
+            _userRepository = userRepository;
             _authService = authService;
-            _logger = logs;
+            _logger = logger;
         }
 
         public User Register(string name, string email, string password)
@@ -66,6 +63,7 @@ namespace ShopProject.Services
             user.Role = newRole;
             _userRepository.Update(user);
         }
+
         public void ShowProfile()
         {
             var currentUser = _authService.RequireUser();

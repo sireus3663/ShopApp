@@ -1,5 +1,7 @@
 ﻿using ShopProject.Db;
+using ShopProject.Db.Interfaces;
 using ShopProject.Models;
+using ShopProject.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,17 +10,24 @@ using System.Threading.Tasks;
 
 namespace ShopProject.Services
 {
-    public class OrderService
+    public class OrderService : IOrderService
     {
-        private readonly AuthService _authService;
-        private readonly CartService _cartService;
-        private readonly OrderRepository _orderRepository;
-        private readonly ProductRepository _productRepository;
-        private readonly UserRepository _userRepository;
-        private readonly DiscountService _discountService;
+        private readonly IAuthService _authService;
+        private readonly ICartService _cartService;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IDiscountService _discountService;
         private readonly AppDbContext _context;
 
-        public OrderService(AuthService authService, CartService cartService, OrderRepository orderRepository, ProductRepository productRepository, UserRepository userRepository, DiscountService discountService, AppDbContext context)
+        public OrderService(
+            IAuthService authService,
+            ICartService cartService,
+            IOrderRepository orderRepository,
+            IProductRepository productRepository,
+            IUserRepository userRepository,
+            IDiscountService discountService,
+            AppDbContext context)
         {
             _authService = authService;
             _cartService = cartService;
@@ -28,8 +37,6 @@ namespace ShopProject.Services
             _discountService = discountService;
             _context = context;
         }
-
-        // ========== СИНХРОННЫЕ МЕТОДЫ ==========
 
         public void BuyCart()
         {
@@ -46,9 +53,15 @@ namespace ShopProject.Services
 
             try
             {
-                var totalPrice = cart.Sum(product =>
-                    _discountService.CalculatePrice(_productRepository.GetById(product.ProductId)) * product.Count
-                );
+                var totalPrice = 0m;
+                foreach (var productInCart in cart)
+                {
+                    var product = _productRepository.GetById(productInCart.ProductId);
+                    if (product != null)
+                    {
+                        totalPrice += _discountService.CalculatePrice(product) * productInCart.Count;
+                    }
+                }
 
                 if (currentUser.Balance < totalPrice)
                     throw new Exception("У пользователя недостаточно денег");
@@ -89,12 +102,10 @@ namespace ShopProject.Services
             }
         }
 
-        public List<Order> getUserOrders(Guid userId)
+        public List<Order> GetUserOrders(Guid userId)
         {
             return _orderRepository.GetByUser(userId);
         }
-
-        // ========== АСИНХРОННЫЕ МЕТОДЫ ==========
 
         public async Task BuyCartAsync()
         {

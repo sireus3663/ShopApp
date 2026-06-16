@@ -1,18 +1,20 @@
-﻿using System;
+﻿using ShopProject.Db;
+using ShopProject.Db.Interfaces;
+using ShopProject.Models;
+using ShopProject.Services.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ShopProject.Db;
-using ShopProject.Models;
 
 namespace ShopProject.Services
 {
-    public class CartService
+    public class CartService : ICartService
     {
-        private readonly CartRepository _cartRepository;
-        private readonly AuthService _authService;
+        private readonly ICartRepository _cartRepository;
+        private readonly IAuthService _authService;
 
-        public CartService(CartRepository cartRepository, AuthService authService)
+        public CartService(ICartRepository cartRepository, IAuthService authService)
         {
             _cartRepository = cartRepository;
             _authService = authService;

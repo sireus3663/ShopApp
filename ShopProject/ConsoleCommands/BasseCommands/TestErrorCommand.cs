@@ -1,31 +1,20 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShopProject.Services;
 
 namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class TestErrorCommand : BaseCommand
     {
-        private readonly LoggerService _logger;
+        private readonly ILoggerService _logger;
         public override string Name => "test-error";
         public override string Description => "Тестовая ошибка";
-        
-        public TestErrorCommand(LoggerService logger) => _logger = logger;
+
+        public TestErrorCommand(ILoggerService logger) => _logger = logger;
 
         public override void Execute(string[] args)
         {
-            throw new Exception("тестовая ошибка");
-            /*try { throw new Exception("Это тестовая ошибка для проверки логирование"); }
-            catch (Exception ex)
-            {
-                Error(ex.Message);
-                _logger.Error("Тестовая ошибка", ex);
-            }*/
+            _logger.Error("Выполнение тестовой ошибки");
+            throw new Exception("Тестовая ошибка");
         }
-
     }
 }

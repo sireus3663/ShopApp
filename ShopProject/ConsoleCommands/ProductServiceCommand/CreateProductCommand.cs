@@ -1,25 +1,20 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db;
 using ShopProject.Models;
-using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class CreateProductCommand : BaseCommand
     {
-        private readonly ProductService _productService;
-        private readonly AuthService _authService;
+        private readonly IProductService _productService;
+        private readonly IAuthService _authService;
 
         public override string Name => "create-product";
         public override string Description => "Создание продукта. Использование: create-product <название> <описание> <цена> <категория>";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 
-        public CreateProductCommand(ProductService productService, AuthService authService)
+        public CreateProductCommand(IProductService productService, IAuthService authService)
         {
             _productService = productService;
             _authService = authService;
@@ -32,21 +27,52 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
                 Info("Пример: create-product Хлеб Свежий хлеб 50.00 Хлебобулочные");
                 return;
             }
-            if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
-            string name = args[0];
-            string description = args[1];
 
-            if (!decimal.TryParse(args[2], out var price)) { Error("Цена должно быть числом"); return; }
-            string cotegory = args[3];
+            var user = _authService.CurrentUser;
+            if (user == null)
+            {
+                Error("Сначала выполните вход");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[0]))
+            {
+                Error("Название не может быть пустым");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[1]))
+            {
+                Error("Описание не может быть пустым");
+                return;
+            }
+
+            if (!decimal.TryParse(args[2], out var price) || price <= 0)
+            {
+                Error("Цена должна быть положительным числом");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[3]))
+            {
+                Error("Категория не может быть пустой");
+                return;
+            }
+
+            string name = args[0].Trim();
+            string description = args[1].Trim();
+            string category = args[3].Trim();
+
             try
             {
-                var product = _productService.createProduct(name, description, price, cotegory);
-                Success($"Товар '{product.Name}' созда! ID: {product.Id}");
-                Info("Товары ожидает проверки модератором");
+                var product = _productService.CreateProduct(name, description, price, category);
+                Success($"Товар '{product.Name}' создан! ID: {product.Id}");
+                Info("Товар ожидает проверки модератором");
             }
-            catch (Exception ex) { Error(ex.Message); }
-
-
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }
         }
     }
 }

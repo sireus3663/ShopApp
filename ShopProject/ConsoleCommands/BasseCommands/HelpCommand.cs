@@ -5,19 +5,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ShopProject.Services.Interfaces;
 
 namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class HelpCommand : BaseCommand
     {
         private readonly CommandRegistry _registry;
-        private readonly AuthService _authService;
+        private readonly IAuthService _authService;
 
         public override string Name => "help";
         public override string Description => "Показать справку и открыть меню";
         public override bool AvailableForGuest => true;
 
-        public HelpCommand(CommandRegistry registry, AuthService authService)
+        public HelpCommand(CommandRegistry registry, IAuthService authService)
         {
             _registry = registry;
             _authService = authService;
@@ -25,14 +26,11 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 
         public override void Execute(string[] args)
         {
-            // Показываем справку
             _registry.ShowHelp();
 
-            // Пауза, чтобы пользователь успел прочитать
             Console.WriteLine("\nНажмите любую клавишу для открытия меню...");
             Console.ReadKey();
 
-            // Открываем меню
             var menuCommand = new MenuCommand(_authService, _registry);
             menuCommand.Execute(Array.Empty<string>());
         }

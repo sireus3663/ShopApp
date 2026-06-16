@@ -1,4 +1,4 @@
-﻿using ShopProject.Services;
+﻿using ShopProject.Services.Interfaces;
 using ShopProject.Models;
 using System;
 using System.Linq;
@@ -7,14 +7,14 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class MenuCommand : BaseCommand
     {
-        private readonly AuthService _authService;
+        private readonly IAuthService _authService;
         private readonly CommandRegistry _registry;
 
         public override string Name => "menu";
         public override string Description => "Показать список доступных команд";
-        public override bool AvailableForGuest => true; 
+        public override bool AvailableForGuest => true;
 
-        public MenuCommand(AuthService authService, CommandRegistry registry)
+        public MenuCommand(IAuthService authService, CommandRegistry registry)
         {
             _authService = authService;
             _registry = registry;
@@ -30,13 +30,14 @@ namespace ShopProject.ConsoleCommands.BasseCommands
             Console.WriteLine(new string('=', 60));
             Console.ResetColor();
 
-            if (_authService.currentUser != null)
+            var currentUser = _authService.CurrentUser;
+            if (currentUser != null)
             {
-                Console.WriteLine($"Пользователь: {_authService.currentUser.Name}");
-                Console.WriteLine($"Роль: {_authService.currentUser.Role}");
-                Console.WriteLine($"Баланс: {_authService.currentUser.Balance:F2} руб.");
+                Console.WriteLine($"Пользователь: {currentUser.Name ?? "Без имени"}");
+                Console.WriteLine($"Роль: {currentUser.Role}");
+                Console.WriteLine($"Баланс: {currentUser.Balance:F2} руб.");
 
-                if (_authService.currentUser.IsBlocked)
+                if (currentUser.IsBlocked)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("ВНИМАНИЕ: Ваш аккаунт заблокирован!");
@@ -80,18 +81,19 @@ namespace ShopProject.ConsoleCommands.BasseCommands
             var baseCmd = command as BaseCommand;
             if (baseCmd == null) return false;
 
-            if (_authService.currentUser == null)
+            var currentUser = _authService.CurrentUser;
+            if (currentUser == null)
             {
                 return baseCmd.AvailableForGuest;
             }
 
-            if (_authService.currentUser.IsBlocked)
+            if (currentUser.IsBlocked)
             {
                 var blockedCommands = new[] { "profile", "logout", "help", "menu", "clear", "exit" };
                 return blockedCommands.Contains(command.Name.ToLower());
             }
 
-            return baseCmd.AvailableFor.Contains(_authService.currentUser.Role);
+            return baseCmd.AvailableFor.Contains(currentUser.Role);
         }
     }
 }

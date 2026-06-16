@@ -1,18 +1,19 @@
-﻿using System;
+﻿using ShopProject.Db.Interfaces;
+using ShopProject.Models;
+using ShopProject.Services.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ShopProject.Db;
-using ShopProject.Models;
 
 namespace ShopProject.Services
 {
-    public class ProductService
+    public class ProductService : IProductService
     {
-        private readonly ProductRepository _productRepository;
-        private readonly AuthService _authService;
+        private readonly IProductRepository _productRepository;
+        private readonly IAuthService _authService;
 
-        public ProductService(ProductRepository productRepository, AuthService authService)
+        public ProductService(IProductRepository productRepository, IAuthService authService)
         {
             _productRepository = productRepository;
             _authService = authService;
@@ -30,7 +31,7 @@ namespace ShopProject.Services
             return _productRepository.GetAll().Where(p => !p.IsApproved).ToList();
         }
 
-        public Product createProduct(string Name, string Description, decimal Price, string Category)
+        public Product CreateProduct(string Name, string Description, decimal Price, string Category)
         {
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanSell(currentUser.Role))
@@ -139,6 +140,18 @@ namespace ShopProject.Services
             if (!PermissionService.CanModerate(currentUser.Role))
                 throw new Exception("Только модераторы или админы могут отклонять продукт");
             await _productRepository.DeleteAsync(ProductId);
+        }
+
+        public async Task<PaginatedResult<Product>> GetApprovedProductsPaginatedAsync(
+            string? searchText = null,
+            string? category = null,
+            decimal? priceFrom = null,
+            decimal? priceTo = null,
+            int page = 1,
+            int pageSize = 12)
+        {
+            return await _productRepository.GetApprovedProductsPaginatedAsync(
+                searchText, category, priceFrom, priceTo, page, pageSize);
         }
     }
 }

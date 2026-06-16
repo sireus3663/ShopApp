@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Windows.Forms;
 using ShopProject.Forms;
+using ShopProject.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection; 
+
 
 namespace ShopProject
 {
@@ -9,6 +12,8 @@ namespace ShopProject
         [STAThread]
         static void Main(string[] args)
         {
+            var serviceProvider = DependencyInjection.ConfigureServices();
+
             if (args.Length > 0 && args[0] == "--console")
             {
                 string autoLoginEmail = null;
@@ -21,7 +26,8 @@ namespace ShopProject
                     }
                 }
 
-                ConsoleMode.Run(autoLoginEmail);
+                var consoleMode = serviceProvider.GetRequiredService<ConsoleMode>();
+                consoleMode.Run(autoLoginEmail);
             }
             else
             {
@@ -30,10 +36,14 @@ namespace ShopProject
 
                 try
                 {
-                    Application.Run(new MainForm());
+                    var mainForm = serviceProvider.GetRequiredService<MainForm>();
+                    Application.Run(mainForm);
                 }
                 catch (Exception ex)
                 {
+                    var logger = serviceProvider.GetRequiredService<ILoggerService>();
+                    logger.Error("Критическая ошибка при запуске", ex);
+
                     MessageBox.Show($"Ошибка: {ex.Message}", "Критическая ошибка",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }

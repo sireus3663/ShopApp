@@ -1,18 +1,20 @@
-﻿using System;
+﻿using ShopProject.Db;
+using ShopProject.Db.Interfaces;
+using ShopProject.Models;
+using ShopProject.Services.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ShopProject.Db;
-using ShopProject.Models;
 
 namespace ShopProject.Services
 {
-    public class FavoriteService
+    public class FavoriteService : IFavoriteService
     {
-        private readonly FavoriteRepository _favoriteRepository;
-        private readonly AuthService _authService;
+        private readonly IFavoriteRepository _favoriteRepository;
+        private readonly IAuthService _authService;
 
-        public FavoriteService(FavoriteRepository favoriteRepository, AuthService authService)
+        public FavoriteService(IFavoriteRepository favoriteRepository, IAuthService authService)
         {
             _favoriteRepository = favoriteRepository;
             _authService = authService;
@@ -50,6 +52,7 @@ namespace ShopProject.Services
         {
             return _favoriteRepository.GetByUser(userId);
         }
+
         public async Task ToggleFavoriteAsync(Guid productId)
         {
             var existingItem = await _favoriteRepository.GetFavoriteItemAsync(_authService.RequireUser().Id, productId);

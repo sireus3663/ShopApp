@@ -1,14 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
+using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ShopProject.Db
 {
-    public class OrderRepository : BaseRepository<Order>
+    public class OrderRepository : BaseRepository<Order>, IOrderRepository
     {
         public OrderRepository(AppDbContext context) : base(context) { }
 

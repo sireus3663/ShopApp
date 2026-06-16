@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.BasseCommands
 {
-   public class ExitCommand : BaseCommand
+    public class ExitCommand : BaseCommand
     {
         public override string Name => "exit";
         public override string Description => "Выход из консоли";

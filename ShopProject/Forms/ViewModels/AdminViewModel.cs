@@ -36,7 +36,7 @@ namespace ShopProject.Forms.ViewModels
             return users.Where(u => u.Name.Contains(searchText) || u.Email.Contains(searchText)).ToList();
         }
 
-        public User GetUser(Guid userId)
+        public User? GetUser(Guid userId)
         {
             return _userRepo.GetById(userId);
         }
@@ -107,7 +107,7 @@ namespace ShopProject.Forms.ViewModels
             return users.Where(u => u.Name.Contains(searchText) || u.Email.Contains(searchText)).ToList();
         }
 
-        public async Task<User> GetUserAsync(Guid userId)
+        public async Task<User?> GetUserAsync(Guid userId)
         {
             return await _userRepo.GetByIdAsync(userId);
         }

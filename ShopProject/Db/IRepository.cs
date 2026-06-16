@@ -10,13 +10,13 @@ namespace ShopProject.Db
 {
     public interface IRepository<T>
     {
-        T GetById(Guid id);
+        T? GetById(Guid id);
         List<T> GetAll();
         void Add(T entity);
         void Update(T entity);
         void Delete(Guid id);
 
-        Task<T> GetByIdAsync(Guid id);
+        Task<T?> GetByIdAsync(Guid id);
         Task<List<T>> GetAllAsync();
         Task AddAsync(T entity);
         Task UpdateAsync(T entity);
@@ -35,7 +35,7 @@ namespace ShopProject.Db
             _dbSet = context.Set<T>();
         }
 
-        public T GetById(Guid id)
+        public T? GetById(Guid id)
         {
             return _dbSet.Find(id);
         }
@@ -67,7 +67,7 @@ namespace ShopProject.Db
             }
         }
 
-        public async Task<T> GetByIdAsync(Guid id)
+        public async Task<T?> GetByIdAsync(Guid id)
         {
             return await _dbSet.FindAsync(id);
         }

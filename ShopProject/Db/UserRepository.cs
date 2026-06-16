@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
+using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace ShopProject.Db
 {
-    public class UserRepository : BaseRepository<User>
+    public class UserRepository : BaseRepository<User>, IUserRepository
     {
         public UserRepository(AppDbContext context) : base(context) { }
 
-        public User GetByEmail(string email)
+        public User? GetByEmail(string email)
         {
             return _dbSet.FirstOrDefault(u => u.Email == email);
         }
@@ -22,7 +23,7 @@ namespace ShopProject.Db
             return _dbSet.Any(u => u.Email == email);
         }
 
-        public async Task<User> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email)
         {
             return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
         }
@@ -32,7 +33,7 @@ namespace ShopProject.Db
             return await _dbSet.AnyAsync(u => u.Email == email);
         }
 
-        public async Task<User> GetByLoginAsync(string email, string password)
+        public async Task<User?> GetByLoginAsync(string email, string password)
         {
             var user = await GetByEmailAsync(email);
             if (user == null) return null;

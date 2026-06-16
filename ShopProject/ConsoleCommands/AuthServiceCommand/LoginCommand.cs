@@ -1,30 +1,47 @@
 ﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShopProject.ConsoleCommands.AuthServiceCommand
 {
     public class LoginCommand : BaseCommand
     {
-        private readonly AuthService _authService;
+        private readonly IAuthService _authService;
         public override string Name => "login";
         public override bool AvailableForGuest => true;
 
         public override string Description => "Вход. Использование: login <email> <пароль>";
-        public LoginCommand(AuthService authService) { _authService = authService; }
+        public LoginCommand(IAuthService authService) { _authService = authService; }
         public override void Execute(string[] args)
         {
-            if (args.Length < 2) { Error("Укажите email и пароль"); return; }
+            if (args.Length < 2)
+            {
+                Error("Укажите email и пароль");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[0]))
+            {
+                Error("Email не может быть пустым");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(args[1]))
+            {
+                Error("Пароль не может быть пустым");
+                return;
+            }
+
             try
             {
                 _authService.Login(args[0], args[1]);
-                Success($"Добро пожаловать, {_authService.currentUser?.Name}");
+                var user = _authService.CurrentUser;
+                Success($"Добро пожаловать, {user?.Name ?? "пользователь"}");
             }
-            catch (Exception ex) { Error(ex.Message); }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }
         }
     }
 }

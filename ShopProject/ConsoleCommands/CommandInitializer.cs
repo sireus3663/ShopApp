@@ -8,7 +8,8 @@ using ShopProject.ConsoleCommands.ProductServiceCommand;
 using ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand;
 using ShopProject.ConsoleCommands.UserServiceCommand;
 using ShopProject.Db;
-using ShopProject.Services;
+using ShopProject.Db.Interfaces;
+using ShopProject.Services.Interfaces;
 
 namespace ShopProject.ConsoleCommands
 {
@@ -16,24 +17,24 @@ namespace ShopProject.ConsoleCommands
     {
         public static void RegisterAll(
             CommandRegistry registry,
-            LoggerService logger,
-            AuthService authService,
-            UserService userService,
-            CartService cartService,
-            FavoriteService favoriteService,
-            ProductService productService,
-            OrderService orderService,
-            ModeratorService moderatorService,
-            DiscountService discountService,
-            ProductRepository productRepo,
-            OrderRepository orderRepo,
-            UserRepository userRepo,
+            ILoggerService logger,
+            IAuthService authService,
+            IUserService userService,
+            ICartService cartService,
+            IFavoriteService favoriteService,
+            IProductService productService,
+            IOrderService orderService,
+            IModeratorService moderatorService,
+            IDiscountService discountService,
+            IProductRepository productRepo,
+            IOrderRepository orderRepo,
+            IUserRepository userRepo,
             AppDbContext context
             )
         {
             // Базовые
             registry.Register(new EchoCommand());
-            registry.Register(new HelpCommand(registry, authService)); 
+            registry.Register(new HelpCommand(registry, authService));
             registry.Register(new ExitCommand());
             registry.Register(new ClearCommand());
             registry.Register(new MenuCommand(authService, registry));
@@ -48,7 +49,7 @@ namespace ShopProject.ConsoleCommands
             registry.Register(new RegisterCommand(userService));
             registry.Register(new ChangeRoleCommand(userService, authService, context));
             registry.Register(new ProfileCommand(userService, authService));
-            registry.Register(new UsersCommand(userRepo, authService));  
+            registry.Register(new UsersCommand(userRepo, authService));
 
             // Cart
             registry.Register(new AddToCartCommand(cartService, authService, productRepo));
@@ -68,11 +69,10 @@ namespace ShopProject.ConsoleCommands
             registry.Register(new GetForModerateCommand(authService, productService));
             registry.Register(new ApproveProductCommand(productService, authService));
             registry.Register(new DeclineProductCommand(productService, authService));
-            registry.Register(new EditProductCommand(productRepo, authService));  
-            registry.Register(new DeleteProductCommand(productService, productRepo, authService));  
-            registry.Register(new AddDiscountCommand(discountService, productRepo, authService));  
+            registry.Register(new EditProductCommand(productRepo, authService));
+            registry.Register(new DeleteProductCommand(productService, productRepo, authService));
+            registry.Register(new AddDiscountCommand(discountService, productRepo, authService));
             registry.Register(new MyProductsCommand(productRepo, authService));
-            
 
             // Order
             registry.Register(new GetUserOrdersCommand(orderService, authService));
@@ -85,7 +85,7 @@ namespace ShopProject.ConsoleCommands
             registry.Register(new ToggleBlockCommand(moderatorService, authService));
 
             // Statistic
-            registry.Register(new TopProductsCommand(orderRepo, productRepo, authService));  
+            registry.Register(new TopProductsCommand(orderRepo, productRepo, authService));
         }
     }
 }
