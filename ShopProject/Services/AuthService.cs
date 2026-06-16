@@ -26,9 +26,19 @@ namespace ShopProject.Services
 
         public async Task<User> Login(string email, string password)
         {
-            var user = _context.users.FirstOrDefault(u => u.Email == email);
-            if (user == null) throw new Exception("Пользователь не найден");
-            if (user.PasswordHash != password) throw new Exception("Неверный пароль");
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                throw new Exception("поля не заполнены");
+
+            if (!_userRepository.Exists(email))
+                throw new Exception("пользователя с таким email не существует");
+
+            User user = _userRepository.GetByEmail(email);
+
+            if (!user.VerifyPassword(password))
+                throw new Exception("пароль неверный");
+
+            if (user.IsBlocked)
+                throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
 
             var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 

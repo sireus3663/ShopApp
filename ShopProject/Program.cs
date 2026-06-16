@@ -40,21 +40,10 @@ namespace ShopProject
                 var authService = new AuthService(context);
                 var logger = new LoggerService();
                 var userService = new UserService(context, authService, logger);
+                await authService.RestoreSession();
 
-                var sessionRestored = await authService.RestoreSession();
-
-                if (sessionRestored)
-                {
-                    Application.Run(new MainForm(authService, context));
-                }
-                else
-                {
-                    var loginForm = new LoginForm(authService, userService);
-                    if (loginForm.ShowDialog() == DialogResult.OK)
-                    {
-                        Application.Run(new MainForm(authService, context));
-                    }
-                }
+ 
+                Application.Run(new MainForm(authService, context));
             }
             catch (Exception ex)
             {
