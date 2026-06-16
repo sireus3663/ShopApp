@@ -1579,8 +1579,7 @@ namespace ShopProject.Forms
 
         private void OpenConsole()
         {
-            var consoleForm = new AdminConsoleForm(_viewModel.CurrentUser);
-            consoleForm.ShowDialog();
+            ConsoleHelper.OpenAdminConsole(_viewModel.CurrentUser);
         }
 
         private void ShowFavorites()

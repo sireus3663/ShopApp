@@ -260,8 +260,7 @@ namespace ShopProject.Forms
         private void OpenConsole()
         {
             var user = _authService.RequireUser();
-            var form = new AdminConsoleForm(user);
-            form.ShowDialog();
+            ConsoleHelper.OpenAdminConsole(user);
         }
 
         private void OpenCreateProductForm()
