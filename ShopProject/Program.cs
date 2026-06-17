@@ -12,6 +12,13 @@ namespace ShopProject
         [STAThread]
         static void Main(string[] args)
         {
+
+            Application.ApplicationExit += (sender, e) =>
+            {
+                // Очистка ресурсов при выходе
+                Environment.Exit(0);
+            };
+
             var serviceProvider = DependencyInjection.ConfigureServices();
 
             if (args.Length > 0 && args[0] == "--console")

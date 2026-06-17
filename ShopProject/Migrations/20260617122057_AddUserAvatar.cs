@@ -5,14 +5,14 @@
 namespace ShopProject.Migrations
 {
     /// <inheritdoc />
-    public partial class AddProductImage : Migration
+    public partial class AddUserAvatar : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<byte[]>(
-                name: "ProductImage",
-                table: "products",
+                name: "Avatar",
+                table: "users",
                 type: "bytea",
                 nullable: true);
         }
@@ -21,8 +21,8 @@ namespace ShopProject.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "ProductImage",
-                table: "products");
+                name: "Avatar",
+                table: "users");
         }
     }
 }

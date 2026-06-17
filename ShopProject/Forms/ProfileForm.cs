@@ -1,9 +1,11 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Services;
+using ShopProject.Services.Interfaces;
 using ShopProject.Models;
 
 namespace ShopProject.Forms
@@ -14,24 +16,41 @@ namespace ShopProject.Forms
         private readonly UserService _userService;
         private readonly AppDbContext _context;
         private readonly ProductService _productService;
-        private Panel pnlNav;
-        private Button btnCart, btnFavorites, btnProfile, btnLogout, btnUserManagement, btnModeration, btnStatistics, btnConsole, btnCreateProduct, btnMyProducts, btnMyOrders, btnComplaints;
-        private Label lblAppName, lblUserName, lblUserRole;
-     
-        private Panel pnlContent;
-        private CartPanel cartPanel;
-        private FavoritesPanel favoritesPanel;
-        private ProfilePanel profilePanel;
-        private Panel searchPanel;
-        private TextBox searchBox;
-        private Button searchBtn;
+        private readonly OrderService _orderService;
+        private readonly IRefundService _refundService;
+        private Panel pnlNav = null!;
+        private Button btnCart = null!;
+        private Button btnFavorites = null!;
+        private Button btnProfile = null!;
+        private Button btnOrders = null!;
+        private Button btnLogout = null!;
+        private Label lblAppName = null!;
+        private Label lblUserName = null!;
+        private Label lblUserRole = null!;
 
-        public ProfileForm(AuthService authService, UserService userService, AppDbContext context, ProductService productService)
+        private Panel pnlContent = null!;
+        private CartPanel cartPanel = null!;
+        private FavoritesPanel favoritesPanel = null!;
+        private ProfilePanel profilePanel = null!;
+        private StatisticPanel statisticPanel = null!;
+        private OrdersPanel ordersPanel = null!;
+        private CreateProductPanel createProductPanel = null!;
+
+        private List<Button> _navButtons = new List<Button>();
+        private Button? _activeNavButton = null;
+
+        public Action<Product>? ProductClicked { get; set; }
+        public Action<Product, ProductService>? ProductClickedForModeration { get; set; }
+
+        public ProfileForm(AuthService authService, UserService userService, AppDbContext context,
+            ProductService productService, OrderService orderService, IRefundService refundService)
         {
-            _authService = authService;
-            _userService = userService;
-            _context = context;
-            _productService = productService;
+            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+            _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
+            _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
             InitializeComponents();
             ShowPanel(profilePanel);
         }
@@ -60,125 +79,197 @@ namespace ShopProject.Forms
                 BackColor = Color.FromArgb(15, 23, 42)
             };
 
-            lblAppName = new Label
-            {
-                Text = "🛍 ShopApp",
-                Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                ForeColor = Color.White,
-                Location = new Point(20, 25),
-                AutoSize = true
-            };
-
-            var homeNavButton = NavButton("🏠 Главная", 75);
-            homeNavButton.Click += (s, e) =>
-            {
-                var mainForm = this.Owner as MainForm;
-                if (mainForm != null)
-                {
-                    mainForm.CloseProfilePanel();
-                }
-                this.Close();
-            };
-            pnlNav.Controls.Add(homeNavButton);
-
-            var user = _authService.currentUser;
-            lblUserName = new Label
-            {
-                Text = user?.Name ?? "Гость",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                ForeColor = Color.White,
-                Location = new Point(20, 125),
-                Size = new Size(180, 22)
-            };
-
-            lblUserRole = new Label
-            {
-                Text = user != null ? $"[{user.Role}]  💰 {user.Balance:N0} ₽" : "",
-                Font = new Font("Segoe UI", 9),
-                ForeColor = Color.FromArgb(148, 163, 184),
-                Location = new Point(20, 148),
-                Size = new Size(180, 18)
-            };
-
-            var sep = new Label
-            {
-                Location = new Point(0, 175),
-                Size = new Size(220, 1),
-                BackColor = Color.FromArgb(51, 65, 85)
-            };
-
-            btnCart = NavButton("🛒 Корзина", 200);
-            btnFavorites = NavButton("❤ Избранное", 250);
-            btnProfile = NavButton("👤 Профиль", 300);
-
-            btnCart.Click += (s, e) => ShowPanel(cartPanel);
-            btnFavorites.Click += (s, e) => ShowPanel(favoritesPanel);
-            btnProfile.Click += (s, e) => ShowPanel(profilePanel);
-
-            pnlNav.Controls.AddRange(new Control[]
-            {
-                lblAppName, lblUserName, lblUserRole, sep,
-                btnCart, btnFavorites, btnProfile
-            });
-
-            if (user != null)
-            {
-                var roleSep = new Label
-                {
-                    Location = new Point(0, 345),
-                    Size = new Size(220, 1),
-                    BackColor = Color.FromArgb(51, 65, 85)
-                };
-                pnlNav.Controls.Add(roleSep);
-
-                int roleY = 360;
-                var role = user.Role;
-
-                if (role == Role.Admin)
-                {
-                    AddRoleNavButton("👥 Управление пользователями", roleY, OpenAdminPanel); roleY += 45;
-                    AddRoleNavButton("📝 Модерация товаров", roleY, OpenModeration); roleY += 45;
-                    AddRoleNavButton("📊 Статистика", roleY, OpenStatistics); roleY += 45;
-                    AddRoleNavButton("🖥 Консоль", roleY, OpenConsole); roleY += 45;
-                    AddRoleNavButton("➕ Создать товар", roleY, OpenCreateProductForm);
-                }
-                else if (role == Role.Moderator)
-                {
-                    AddRoleNavButton("📝 Модерация", roleY, OpenModeration); roleY += 45;
-                    AddRoleNavButton("📋 Список жалоб", roleY, OpenComplaints);
-                }
-                else if (role == Role.Seller)
-                {
-                    AddRoleNavButton("📦 Мои товары", roleY, ShowMyProducts); roleY += 45;
-                    AddRoleNavButton("➕ Создать товар", roleY, OpenCreateProductForm); roleY += 45;
-                    AddRoleNavButton("📊 Статистика", roleY, OpenStatistics);
-                }
-            }
-
             btnLogout = new Button
             {
                 Text = "🚪 Выйти из аккаунта",
-                Location = new Point(0, 590),
-                Size = new Size(220, 45),
+                Dock = DockStyle.Bottom,
+                Height = 45,
                 Font = new Font("Segoe UI", 10),
                 BackColor = Color.FromArgb(127, 29, 29),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(20, 0, 0, 0)
+                Padding = new Padding(22, 0, 0, 0)
             };
             btnLogout.FlatAppearance.BorderSize = 0;
+            btnLogout.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using var brush = new SolidBrush(btnLogout.BackColor);
+                e.Graphics.FillRectangle(brush, btnLogout.ClientRectangle);
+                TextRenderer.DrawText(e.Graphics, btnLogout.Text, btnLogout.Font,
+                    new Point(22, (btnLogout.Height - TextRenderer.MeasureText(btnLogout.Text, btnLogout.Font).Height) / 2),
+                    btnLogout.ForeColor, TextFormatFlags.Default);
+            };
+            btnLogout.MouseEnter += (s, e) => { btnLogout.BackColor = Color.FromArgb(153, 27, 27); btnLogout.Invalidate(); };
+            btnLogout.MouseLeave += (s, e) => { btnLogout.BackColor = Color.FromArgb(127, 29, 29); btnLogout.Invalidate(); };
             btnLogout.Click += BtnLogout_Click;
-
             pnlNav.Controls.Add(btnLogout);
+
+            var pnlNavScroll = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.FromArgb(15, 23, 42)
+            };
+            pnlNav.Controls.Add(pnlNavScroll);
+
+            int y = 24;
+            var user = _authService.CurrentUser;
+
+            lblAppName = new Label
+            {
+                Text = "🛍 ShopApp",
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(20, y),
+                AutoSize = true
+            };
+            pnlNavScroll.Controls.Add(lblAppName);
+
+            y += 38;
+            pnlNavScroll.Controls.Add(new Label
+            {
+                Location = new Point(16, y),
+                Size = new Size(188, 1),
+                BackColor = Color.FromArgb(51, 65, 85)
+            });
+
+            y += 24;
+            var pbAvatar = new Panel
+            {
+                Size = new Size(36, 36),
+                Location = new Point(20, y),
+                BackColor = Color.FromArgb(37, 99, 235)
+            };
+            pbAvatar.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.FillEllipse(new SolidBrush(Color.FromArgb(37, 99, 235)), 0, 0, 35, 35);
+                var initial = (user?.Name?.Length > 0 ? user.Name[0].ToString() : "?").ToUpper();
+                TextRenderer.DrawText(e.Graphics, initial, new Font("Segoe UI", 14, FontStyle.Bold),
+                    pbAvatar.ClientRectangle, Color.White,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            pnlNavScroll.Controls.Add(pbAvatar);
+
+            lblUserName = new Label
+            {
+                Text = user?.Name ?? "Гость",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(66, y),
+                AutoSize = true
+            };
+            pnlNavScroll.Controls.Add(lblUserName);
+
+            lblUserRole = new Label
+            {
+                Text = user != null ? $"[{user.Role}]" : "",
+                Font = new Font("Segoe UI", 9),
+                ForeColor = Color.FromArgb(148, 163, 184),
+                Location = new Point(66, y + 20),
+                AutoSize = true
+            };
+            pnlNavScroll.Controls.Add(lblUserRole);
+
+            var lblBalance = new Label
+            {
+                Text = user != null ? $"💰 {user.Balance:N0} ₽" : "",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(52, 211, 153),
+                Location = new Point(20, y + 46),
+                AutoSize = true
+            };
+            pnlNavScroll.Controls.Add(lblBalance);
+
+            y += 76;
+            pnlNavScroll.Controls.Add(new Label
+            {
+                Location = new Point(16, y),
+                Size = new Size(188, 1),
+                BackColor = Color.FromArgb(51, 65, 85)
+            });
+
+            y += 14;
+            var homeBtn = NavButton("🏠 Главная", y);
+            homeBtn.Click += (s, e) =>
+            {
+                var mainForm = this.Owner as MainForm;
+                if (mainForm != null)
+                    mainForm.CloseEmbeddedForm();
+            };
+            pnlNavScroll.Controls.Add(homeBtn);
+            _navButtons.Add(homeBtn);
+            y += 45;
+
+            btnCart = NavButton("🛒 Корзина", y); y += 45;
+            btnFavorites = NavButton("❤ Избранное", y); y += 45;
+            btnProfile = NavButton("👤 Профиль", y); y += 45;
+            btnOrders = NavButton("📦 Заказы и возвраты", y); y += 45;
+
+            btnCart.Click += (s, e) => ShowPanel(cartPanel);
+            btnFavorites.Click += (s, e) => ShowPanel(favoritesPanel);
+            btnProfile.Click += (s, e) => ShowPanel(profilePanel);
+            btnOrders.Click += (s, e) => ShowPanel(ordersPanel);
+
+            pnlNavScroll.Controls.Add(btnCart);
+            pnlNavScroll.Controls.Add(btnFavorites);
+            pnlNavScroll.Controls.Add(btnProfile);
+            pnlNavScroll.Controls.Add(btnOrders);
+            _navButtons.Add(btnCart);
+            _navButtons.Add(btnFavorites);
+            _navButtons.Add(btnProfile);
+            _navButtons.Add(btnOrders);
+
+            if (user != null)
+            {
+                y += 6;
+                pnlNavScroll.Controls.Add(new Label
+                {
+                    Location = new Point(16, y),
+                    Size = new Size(188, 1),
+                    BackColor = Color.FromArgb(51, 65, 85)
+                });
+
+                y += 14;
+                var role = user.Role;
+                if (role == Role.Admin)
+                {
+                    AddRoleNavButton(pnlNavScroll, "👥 Управление пользователями", y, OpenAdminPanel); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📝 Модерация товаров", y, OpenModeration); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "↩ Возвраты", y, OpenRefundModeration); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📊 Статистика", y, OpenStatistics); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "🖥 Консоль", y, OpenConsole); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm);
+                }
+                else if (role == Role.Moderator)
+                {
+                    AddRoleNavButton(pnlNavScroll, "📝 Модерация", y, OpenModeration); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "↩ Возвраты", y, OpenRefundModeration); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📋 Список жалоб", y, OpenComplaints);
+                }
+                else if (role == Role.Seller)
+                {
+                    AddRoleNavButton(pnlNavScroll, "📦 Мои товары", y, ShowMyProducts); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📊 Статистика", y, OpenStatistics);
+                }
+            }
         }
 
-        private void AddRoleNavButton(string text, int y, Action onClick)
+        private void AddRoleNavButton(Panel parent, string text, int y, Action onClick)
         {
             var btn = NavButton(text, y);
-            btn.Click += (s, e) => onClick();
-            pnlNav.Controls.Add(btn);
+            btn.Click += (s, e) =>
+            {
+                _activeNavButton = btn;
+                HighlightNav(btn);
+                onClick();
+            };
+            parent.Controls.Add(btn);
+            _navButtons.Add(btn);
         }
 
         private Button NavButton(string text, int y)
@@ -188,17 +279,49 @@ namespace ShopProject.Forms
                 Text = text,
                 Location = new Point(0, y),
                 Size = new Size(220, 40),
-                Font = new Font("Segoe UI", 9),
+                Font = new Font("Segoe UI", 10),
                 BackColor = Color.FromArgb(15, 23, 42),
                 ForeColor = Color.FromArgb(203, 213, 225),
                 FlatStyle = FlatStyle.Flat,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(20, 0, 0, 0),
+                Padding = new Padding(0),
                 Cursor = Cursors.Hand
             };
             btn.FlatAppearance.BorderSize = 0;
-            btn.MouseEnter += (s, e) => { if (btn.BackColor != Color.FromArgb(37, 99, 235)) btn.BackColor = Color.FromArgb(30, 41, 59); };
-            btn.MouseLeave += (s, e) => { if (btn.BackColor != Color.FromArgb(37, 99, 235)) btn.BackColor = Color.FromArgb(15, 23, 42); };
+            btn.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var b = (Button)s!;
+                using var bgBrush = new SolidBrush(b.BackColor);
+                e.Graphics.FillRectangle(bgBrush, b.ClientRectangle);
+
+                if (b == _activeNavButton)
+                {
+                    using var accentBrush = new SolidBrush(Color.FromArgb(37, 99, 235));
+                    e.Graphics.FillRectangle(accentBrush, 0, 0, 3, b.Height);
+                }
+
+                var txt = b.Text;
+                var sz = TextRenderer.MeasureText(txt, b.Font);
+                var tx = 22;
+                if (txt.Length > 0 && txt[0] >= 0x1F300)
+                    tx = 16;
+                TextRenderer.DrawText(e.Graphics, txt, b.Font,
+                    new Point(tx, (b.Height - sz.Height) / 2),
+                    b.ForeColor, TextFormatFlags.Default);
+            };
+            btn.MouseEnter += (s, e) =>
+            {
+                if (btn != _activeNavButton)
+                    btn.BackColor = Color.FromArgb(30, 41, 59);
+                btn.Invalidate();
+            };
+            btn.MouseLeave += (s, e) =>
+            {
+                if (btn != _activeNavButton)
+                    btn.BackColor = Color.FromArgb(15, 23, 42);
+                btn.Invalidate();
+            };
             return btn;
         }
 
@@ -207,113 +330,106 @@ namespace ShopProject.Forms
             pnlContent = new Panel
             {
                 Location = new Point(220, 0),
+                Size = new Size(ClientSize.Width - 220, ClientSize.Height),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 BackColor = Color.FromArgb(245, 247, 250)
             };
-            pnlContent.Size = new Size(ClientSize.Width - 220, ClientSize.Height);
             Resize += (s, e) =>
                 pnlContent.Size = new Size(ClientSize.Width - 220, ClientSize.Height);
 
-            searchPanel = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 60,
-                BackColor = Color.White,
-                Padding = new Padding(10)
-            };
-
-            var searchLabel = new Label
-            {
-                Text = "Поиск товаров:",
-                Location = new Point(10, 18),
-                Size = new Size(100, 25),
-                Font = new Font("Segoe UI", 10)
-            };
-            searchPanel.Controls.Add(searchLabel);
-
-            searchBox = new TextBox
-            {
-                Location = new Point(115, 15),
-                Size = new Size(250, 30),
-                Font = new Font("Segoe UI", 11)
-            };
-            searchPanel.Controls.Add(searchBox);
-
-            searchBtn = new Button
-            {
-                Text = "Найти",
-                Location = new Point(375, 13),
-                Size = new Size(80, 32),
-                BackColor = Color.FromArgb(80, 80, 85),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            searchBtn.Click += SearchBtn_Click;
-            searchPanel.Controls.Add(searchBtn);
-
-            cartPanel = new CartPanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
+            cartPanel = new CartPanel(_authService, _context, _orderService) { Dock = DockStyle.Fill, Visible = false };
+            cartPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
             favoritesPanel = new FavoritesPanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
-            profilePanel = new ProfilePanel(_authService) { Dock = DockStyle.Fill, Visible = false };
+            favoritesPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
+            profilePanel = new ProfilePanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
+            statisticPanel = new StatisticPanel(_context, _authService) { Dock = DockStyle.Fill, Visible = false };
+            ordersPanel = new OrdersPanel(_authService, _context, _productService, _orderService, _refundService) { Dock = DockStyle.Fill, Visible = false };
+            ordersPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
+            createProductPanel = new CreateProductPanel(_authService, _productService, _context) { Dock = DockStyle.Fill, Visible = false };
 
             pnlContent.Controls.AddRange(new Control[]
             {
                 cartPanel,
                 favoritesPanel,
                 profilePanel,
-                searchPanel
+                statisticPanel,
+                ordersPanel,
+                createProductPanel
             });
-        }
-
-        private void SearchBtn_Click(object sender, EventArgs e)
-        {
-            var searchText = searchBox.Text.Trim();
-            if (string.IsNullOrEmpty(searchText))
-            {
-                MessageBox.Show("Введите текст для поиска", "Поиск");
-                return;
-            }
-
-            var mainForm = this.Owner as MainForm;
-            if (mainForm != null)
-            {
-                mainForm.CloseProfilePanel();
-                mainForm.SetSearchText(searchText);
-            }
-            this.Close();
         }
 
         private void ShowPanel(Panel panel)
         {
+            if (panel == null) return;
+
             foreach (Control c in pnlContent.Controls)
             {
-                if (c != searchPanel)
-                    c.Visible = false;
+                c.Visible = false;
             }
 
-            foreach (Control c in pnlNav.Controls)
-                if (c is Button b && b != btnLogout)
-                    b.BackColor = Color.FromArgb(15, 23, 42);
+            ResetAllButtons();
 
             panel.Visible = true;
+            panel.BringToFront();
 
-            if (panel == cartPanel) HighlightNav(btnCart);
-            if (panel == favoritesPanel) HighlightNav(btnFavorites);
-            if (panel == profilePanel) HighlightNav(btnProfile);
+            if (panel == cartPanel)
+                _activeNavButton = btnCart;
+            else if (panel == favoritesPanel)
+                _activeNavButton = btnFavorites;
+            else if (panel == profilePanel)
+                _activeNavButton = btnProfile;
+            else if (panel == ordersPanel)
+                _activeNavButton = btnOrders;
+            else if (panel == createProductPanel)
+                _activeNavButton = null;
 
-            if (panel is IRefreshable r) r.Refresh();
+            if (_activeNavButton != null)
+                HighlightNav(_activeNavButton);
+
+            if (panel is IRefreshable r)
+                r.Refresh();
+
+            pnlNav.Invalidate();
+            pnlNav.Update();
+        }
+
+        private void ResetAllButtons()
+        {
+            foreach (var b in _navButtons)
+            {
+                if (b != null && b != btnLogout)
+                {
+                    b.BackColor = Color.FromArgb(15, 23, 42);
+                    b.ForeColor = Color.FromArgb(203, 213, 225);
+                    b.Invalidate();
+                }
+            }
         }
 
         private void HighlightNav(Button btn)
         {
-            btn.BackColor = Color.FromArgb(37, 99, 235);
-            btn.ForeColor = Color.White;
+            if (btn == null) return;
+            _activeNavButton = btn;
+            foreach (var b in _navButtons)
+            {
+                if (b == btn)
+                {
+                    b.BackColor = Color.FromArgb(30, 41, 59);
+                    b.ForeColor = Color.White;
+                }
+                else
+                {
+                    b.BackColor = Color.FromArgb(15, 23, 42);
+                    b.ForeColor = Color.FromArgb(203, 213, 225);
+                }
+                b.Invalidate();
+            }
         }
 
-        private void BtnLogout_Click(object sender, EventArgs e)
+        private void BtnLogout_Click(object? sender, EventArgs e)   
         {
-            _authService.Logout();
-            DialogResult = DialogResult.Abort;
-            Close();
+            var main = (MainForm)Owner;
+            main.Logout();
         }
 
         private void OpenAdminPanel()
@@ -326,26 +442,20 @@ namespace ShopProject.Forms
         private void OpenModeration()
         {
             var form = new ModerationForm(_authService, _productService);
+            form.OnProductClick = (product, ps) => ProductClickedForModeration?.Invoke(product, ps);
+            ShowInnerForm(form);
+        }
+
+        private void OpenRefundModeration()
+        {
+            var form = new RefundModerationForm(_refundService, _authService, _context);
             ShowInnerForm(form);
         }
 
         private void OpenStatistics()
         {
-            var form = new Form
-            {
-                Text = "Статистика",
-                Size = new Size(800, 500),
-                BackColor = Color.White
-            };
-            var label = new Label
-            {
-                Text = "Статистика маркетплейса в разработке",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 14)
-            };
-            form.Controls.Add(label);
-            ShowInnerForm(form);
+            ShowPanel(statisticPanel);
+            statisticPanel.Refresh();
         }
 
         private void OpenConsole()
@@ -353,12 +463,12 @@ namespace ShopProject.Forms
             var user = _authService.RequireUser();
             var form = new AdminConsoleForm(user);
             ShowInnerForm(form);
+            form.Start();
         }
 
         private void OpenCreateProductForm()
         {
-            var form = new CreateProductForm(_authService, _productService, _context);
-            ShowInnerForm(form);
+            ShowPanel(createProductPanel);
         }
 
         private void OpenComplaints()
@@ -392,7 +502,7 @@ namespace ShopProject.Forms
 
         public void RefreshData()
         {
-            var user = _authService.currentUser;
+            var user = _authService.CurrentUser;
             if (user != null)
             {
                 lblUserName.Text = user.Name;
@@ -404,19 +514,37 @@ namespace ShopProject.Forms
             if (profilePanel is IRefreshable refreshable)
                 refreshable.Refresh();
         }
+        public void RefreshModerationList()
+        {
+            foreach (Control c in pnlContent.Controls)
+            {
+                if (c is ModerationForm mf)
+                {
+                    mf.LoadProducts();
+                    break;
+                }
+            }
+        }
+
         private void ShowInnerForm(Form form)
         {
             if (cartPanel != null) cartPanel.Visible = false;
             if (favoritesPanel != null) favoritesPanel.Visible = false;
             if (profilePanel != null) profilePanel.Visible = false;
+            if (ordersPanel != null) ordersPanel.Visible = false;
+            if (createProductPanel != null) createProductPanel.Visible = false;
 
             foreach (Control c in pnlContent.Controls)
             {
-                if (c is Form && c != searchPanel)
+                if (c is Form)
                 {
                     c.Dispose();
                 }
             }
+
+            ResetAllButtons();
+            if (_activeNavButton != null)
+                HighlightNav(_activeNavButton);
 
             form.TopLevel = false;
             form.FormBorderStyle = FormBorderStyle.None;

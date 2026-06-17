@@ -11,14 +11,14 @@ namespace ShopProject.Services.Interfaces
     {
         List<Product> GetAllApproved();
         List<Product> GetForModerate();
-        Product CreateProduct(string name, string description, decimal price, string category);
+        Product CreateProduct(string name, string description, decimal price, string category, byte[]? productImage = null, int amount = 0);
         Product Approve(Guid productId);
         void Decline(Guid productId);
         void Delete(Guid productId);
 
         Task<List<Product>> GetAllApprovedAsync();
         Task<List<Product>> GetForModerateAsync();
-        Task<Product> CreateProductAsync(string name, string description, decimal price, string category);
+        Task<Product> CreateProductAsync(string name, string description, decimal price, string category, byte[]? productImage = null, int amount = 0);
         Task<Product> ApproveAsync(Guid productId);
         Task DeclineAsync(Guid productId);
 

@@ -63,7 +63,6 @@ namespace ShopProject
 
         public void Run(string autoLoginEmail = null)
         {
-            ShowBanner();
 
             // Проверяем подключение к БД
             if (!CheckDatabaseConnection())
@@ -105,7 +104,7 @@ namespace ShopProject
 
             while (true)
             {
-                var user = _authService.currentUser;
+                var user = _authService.CurrentUser;
                 Console.Write(user != null ? $"\n[{user.Name}]> " : "\n> ");
 
                 var input = Console.ReadLine()?.Trim();
@@ -246,25 +245,6 @@ namespace ShopProject
                 Console.WriteLine($"[WARNING] Пользователь {email} не найден");
                 Console.ResetColor();
             }
-        }
-
-        private static void ShowBanner()
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(@"
-╔══════════════════════════════════════════════════════╗
-║                                                      ║
-║   ███████╗██╗  ██╗ ██████╗ ██████╗  █████╗ ██████╗  ║
-║   ██╔════╝██║  ██║██╔═══██╗██╔══██╗██╔══██╗██╔══██╗ ║
-║   ███████╗███████║██║   ██║██████╔╝███████║██████╔╝ ║
-║   ╚════██║██╔══██║██║   ██║██╔═══╝ ██╔══██║██╔═══╝  ║
-║   ███████║██║  ██║╚██████╔╝██║     ██║  ██║██║      ║
-║   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝      ║
-║                                                      ║
-║           Добро пожаловать в ShopApp!                ║
-╚══════════════════════════════════════════════════════╝
-");
-            Console.ResetColor();
         }
 
         private void ShowWelcomeMessage()

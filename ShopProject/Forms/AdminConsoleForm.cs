@@ -12,80 +12,158 @@ namespace ShopProject.Forms
         private readonly User _currentUser;
         private RichTextBox consoleOutput;
         private TextBox inputBox;
-        private Process _consoleProcess;
+        private Label statusLabel;
+        private Button restartBtn;
+        private Button clearBtn;
+        private Process? _consoleProcess;
         private bool _isRunning = false;
+        private bool _started = false;
 
-        public AdminConsoleForm(User currentUser)  
+        public AdminConsoleForm(User currentUser)
         {
-            _currentUser = currentUser;
+            _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
             InitializeComponent();
-            StartConsole();
+        }
+
+        public void Start()
+        {
+            if (!_started) StartConsole();
+        }
+
+        public void Stop()
+        {
+            if (_consoleProcess != null && !_consoleProcess.HasExited)
+            {
+                _consoleProcess.Kill();
+                _consoleProcess.Dispose();
+                _consoleProcess = null;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) Stop();
+            base.Dispose(disposing);
         }
 
         private void InitializeComponent()
         {
             this.Text = "Консоль администратора";
-            this.Size = new Size(900, 600);
+            this.Size = new Size(1000, 650);
+            this.MinimumSize = new Size(700, 400);
             this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.FromArgb(30, 30, 30);
             this.FormClosing += AdminConsoleForm_FormClosing;
 
-            var toolStrip = new ToolStrip
+            var headerPanel = new Panel
             {
-                BackColor = Color.FromArgb(45, 45, 48),
-                ForeColor = Color.White
+                Dock = DockStyle.Top,
+                Height = 48,
+                BackColor = Color.FromArgb(40, 40, 45),
+                Padding = new Padding(12, 0, 12, 0)
             };
 
-            var restartBtn = new ToolStripButton
+            var titleLabel = new Label
             {
-                Text = "Перезапустить",
+                Text = "🖥 Консоль администратора",
                 ForeColor = Color.White,
-                BackColor = Color.FromArgb(80, 80, 85)
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Location = new Point(12, 12),
+                AutoSize = true,
+                BackColor = Color.Transparent
             };
-            restartBtn.Click += (s, e) => RestartConsole();
 
-            var clearBtn = new ToolStripButton
-            {
-                Text = "Очистить",
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(80, 80, 85)
-            };
-            clearBtn.Click += (s, e) => consoleOutput.Clear();
-
-            var statusLabel = new ToolStripLabel
+            statusLabel = new Label
             {
                 Text = "Статус: Запуск...",
-                ForeColor = Color.FromArgb(100, 200, 100)
+                ForeColor = Color.FromArgb(100, 200, 100),
+                Font = new Font("Segoe UI", 9),
+                Location = new Point(300, 15),
+                AutoSize = true,
+                BackColor = Color.Transparent
             };
 
-            toolStrip.Items.Add(restartBtn);
-            toolStrip.Items.Add(clearBtn);
-            toolStrip.Items.Add(new ToolStripSeparator());
-            toolStrip.Items.Add(statusLabel);
+            restartBtn = new Button
+            {
+                Text = "⟳",
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(60, 60, 65),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Size = new Size(32, 28),
+                Location = new Point(headerPanel.Width - 82, 10),
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            restartBtn.FlatAppearance.MouseOverBackColor = Color.FromArgb(80, 80, 85);
+            restartBtn.FlatAppearance.MouseDownBackColor = Color.FromArgb(100, 100, 105);
+            restartBtn.Click += (s, e) => RestartConsole();
+
+            clearBtn = new Button
+            {
+                Text = "✕",
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(60, 60, 65),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Size = new Size(32, 28),
+                Location = new Point(headerPanel.Width - 42, 10),
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            clearBtn.FlatAppearance.MouseOverBackColor = Color.FromArgb(80, 80, 85);
+            clearBtn.FlatAppearance.MouseDownBackColor = Color.FromArgb(100, 100, 105);
+            clearBtn.Click += (s, e) => consoleOutput?.Clear();
+
+            var tooltipRestart = new ToolTip();
+            tooltipRestart.SetToolTip(restartBtn, "Перезапустить консоль");
+            var tooltipClear = new ToolTip();
+            tooltipClear.SetToolTip(clearBtn, "Очистить вывод");
+
+            headerPanel.Controls.Add(titleLabel);
+            headerPanel.Controls.Add(statusLabel);
+            headerPanel.Controls.Add(restartBtn);
+            headerPanel.Controls.Add(clearBtn);
 
             consoleOutput = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.Black,
+                BackColor = Color.FromArgb(18, 18, 20),
                 ForeColor = Color.FromArgb(0, 255, 0),
                 Font = new Font("Consolas", 10),
                 ReadOnly = true,
-                WordWrap = false
+                WordWrap = false,
+                BorderStyle = BorderStyle.None
             };
 
             inputBox = new TextBox
             {
                 Dock = DockStyle.Bottom,
-                Height = 30,
-                BackColor = Color.FromArgb(60, 60, 65),
+                Height = 32,
+                BackColor = Color.FromArgb(25, 25, 28),
                 ForeColor = Color.White,
-                Font = new Font("Consolas", 10)
+                Font = new Font("Consolas", 10),
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0)
             };
             inputBox.KeyDown += InputBox_KeyDown;
 
+            var inputPanel = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 34,
+                BackColor = Color.FromArgb(30, 30, 33),
+                Padding = new Padding(2, 1, 2, 1)
+            };
+            inputPanel.Controls.Add(inputBox);
+
             this.Controls.Add(consoleOutput);
-            this.Controls.Add(inputBox);
-            this.Controls.Add(toolStrip);
+            this.Controls.Add(inputPanel);
+            this.Controls.Add(headerPanel);
         }
 
         private void StartConsole()
@@ -150,7 +228,7 @@ namespace ShopProject.Forms
             }
         }
 
-        private void AppendColoredOutput(string text, Color? forcedColor = null)
+        private void AppendColoredOutput(string? text, Color? forcedColor = null)
         {
             if (consoleOutput.InvokeRequired)
             {
@@ -232,9 +310,9 @@ namespace ShopProject.Forms
             return Color.LightGray;
         }
 
-        private void InputBox_KeyDown(object sender, KeyEventArgs e)
+        private void InputBox_KeyDown(object? sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter && _isRunning)
+            if (e.KeyCode == Keys.Enter && _isRunning && _consoleProcess != null)
             {
                 var command = inputBox.Text.Trim();
                 if (!string.IsNullOrEmpty(command))
@@ -266,15 +344,14 @@ namespace ShopProject.Forms
                 return;
             }
 
-            var toolStrip = this.Controls[2] as ToolStrip;
-            if (toolStrip != null && toolStrip.Items[3] is ToolStripLabel label)
+            if (statusLabel != null)
             {
-                label.Text = $"Статус: {status}";
-                label.ForeColor = color;
+                statusLabel.Text = $"Статус: {status}";
+                statusLabel.ForeColor = color;
             }
         }
 
-        private void AdminConsoleForm_FormClosing(object sender, FormClosingEventArgs e)
+        private void AdminConsoleForm_FormClosing(object? sender, FormClosingEventArgs e)
         {
             if (_consoleProcess != null && !_consoleProcess.HasExited)
             {

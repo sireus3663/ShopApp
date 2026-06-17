@@ -31,7 +31,7 @@ namespace ShopProject.Services
             return _productRepository.GetAll().Where(p => !p.IsApproved).ToList();
         }
 
-        public Product CreateProduct(string Name, string Description, decimal Price, string Category)
+        public Product CreateProduct(string Name, string Description, decimal Price, string Category, byte[]? ProductImage = null, int Amount = 0)
         {
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanSell(currentUser.Role))
@@ -45,7 +45,9 @@ namespace ShopProject.Services
                 Price = Price,
                 SellerId = currentUser.Id,
                 Category = Category,
+                Amount = Amount,
                 IsApproved = false,
+                ProductImage = ProductImage
             };
             _productRepository.Add(newProduct);
             return newProduct;
@@ -99,7 +101,7 @@ namespace ShopProject.Services
             return products.Where(p => !p.IsApproved).ToList();
         }
 
-        public async Task<Product> CreateProductAsync(string Name, string Description, decimal Price, string Category)
+        public async Task<Product> CreateProductAsync(string Name, string Description, decimal Price, string Category, byte[]? ProductImage = null, int Amount = 0)
         {
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanSell(currentUser.Role))
@@ -113,7 +115,9 @@ namespace ShopProject.Services
                 Price = Price,
                 SellerId = currentUser.Id,
                 Category = Category,
+                Amount = Amount,
                 IsApproved = false,
+                ProductImage = ProductImage
             };
             await _productRepository.AddAsync(newProduct);
             return newProduct;

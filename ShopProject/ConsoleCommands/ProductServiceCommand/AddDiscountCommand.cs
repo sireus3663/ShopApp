@@ -26,12 +26,12 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         public override void Execute(string[] args)
         {
             if (args.Length < 2) { Error("Укажите ID товара и процент скидки"); return; }
-            if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
+            if (_authService.CurrentUser == null) { Error("Сначала выполните вход"); return; }
             if (!Guid.TryParse(args[0], out var productId)) { Error("Некорректный ID товара"); return; }
             if (!Decimal.TryParse(args[1], out var percent)) { Error("Процент должен быть числом"); return; }
             var product = _productRepo.GetById(productId);
             if (product == null) { Error("Товар не найден"); return; }
-            if (product.SellerId != _authService.currentUser.Id && _authService.currentUser.Role != Role.Admin) { Error("Вы можете добавлять скидку только на свои товары"); return; }
+            if (product.SellerId != _authService.CurrentUser.Id && _authService.CurrentUser.Role != Role.Admin) { Error("Вы можете добавлять скидку только на свои товары"); return; }
 
             try
             {

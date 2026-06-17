@@ -25,8 +25,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         }
         public override void Execute(string[] args)
         {
-            if (_authService.currentUser == null) { Error("Сначала выполните вход"); return; }
-            if (_authService.currentUser.Role != Role.Admin) { Error("Только администратор может просматривать статистику"); return; }
+            if (_authService.CurrentUser == null) { Error("Сначала выполните вход"); return; }
+            if (_authService.CurrentUser.Role != Role.Admin) { Error("Только администратор может просматривать статистику"); return; }
             var orders = _orderRepo.GetAll();
             var topProducts = orders
                 .GroupBy(o => o.ProductId)

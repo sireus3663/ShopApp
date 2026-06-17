@@ -46,6 +46,7 @@ namespace ShopProject
                 services.AddScoped<IOrderRepository, OrderRepository>();
                 services.AddScoped<IFavoriteRepository, FavoriteRepository>();
                 services.AddScoped<IDiscountRepository, DiscountRepository>();
+                services.AddScoped<IRefundRequestRepository, RefundRequestRepository>();
 
                 // Сервисы
                 services.AddScoped<IAuthService, AuthService>();
@@ -57,6 +58,7 @@ namespace ShopProject
                 services.AddScoped<IDiscountService, DiscountService>();
                 services.AddScoped<IModeratorService, ModeratorService>();
                 services.AddScoped<IStatisticService, StatisticService>();
+                services.AddScoped<IRefundService, RefundService>();
 
                 // ViewModels
                 services.AddScoped<MainViewModel>();

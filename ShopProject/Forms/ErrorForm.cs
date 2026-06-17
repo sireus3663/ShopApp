@@ -6,12 +6,12 @@ namespace ShopProject.Forms
 {
     public class ErrorForm : Form
     {
-        private Label messageLabel;
-        private TextBox detailsBox;
-        private Button okButton;
-        private Button copyButton;
+        private Label messageLabel = null!;
+        private TextBox detailsBox = null!;
+        private Button okButton = null!;
+        private Button copyButton = null!;
 
-        public ErrorForm(string message, Exception ex = null)
+        public ErrorForm(string message, Exception? ex = null)
         {
             InitializeComponent();
             messageLabel.Text = message;
@@ -82,7 +82,7 @@ namespace ShopProject.Forms
             this.Controls.Add(okButton);
         }
 
-        public static void Show(string message, Exception ex = null)
+        public static void Show(string message, Exception? ex = null)
         {
             var form = new ErrorForm(message, ex);
             form.ShowDialog();

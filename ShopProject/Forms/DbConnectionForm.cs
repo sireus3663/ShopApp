@@ -8,12 +8,17 @@ namespace ShopProject.Forms
 {
     public class DbConnectionForm : Form
     {
-        private TextBox txtHost, txtPort, txtDatabase, txtUsername, txtPassword;
-        private Button btnConnect, btnCancel;
-        private Label lblStatus;
-        private AppConfigService _configService;
-        private StartupService _startup;
-        public AppDbContext ConnectedContext { get; private set; }
+        private TextBox txtHost = null!;
+        private TextBox txtPort = null!;
+        private TextBox txtDatabase = null!;
+        private TextBox txtUsername = null!;
+        private TextBox txtPassword = null!;
+        private Button btnConnect = null!;
+        private Button btnCancel = null!;
+        private Label lblStatus = null!;
+        private readonly AppConfigService _configService;
+        private readonly StartupService _startup;
+        public AppDbContext? ConnectedContext { get; private set; }
 
         public DbConnectionForm()
         {
@@ -122,9 +127,21 @@ namespace ShopProject.Forms
 
         private async void BtnConnect_Click(object sender, EventArgs e)
         {
-            _configService.UpdateConnectionString(
-                txtHost.Text, txtPort.Text, txtDatabase.Text,
-                txtUsername.Text, txtPassword.Text);
+            var host = txtHost.Text.Trim();
+            var port = txtPort.Text.Trim();
+            var database = txtDatabase.Text.Trim();
+            var username = txtUsername.Text.Trim();
+            var password = txtPassword.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(port) ||
+                string.IsNullOrWhiteSpace(database) || string.IsNullOrWhiteSpace(username))
+            {
+                lblStatus.ForeColor = Color.FromArgb(180, 100, 100);
+                lblStatus.Text = "Заполните все поля!";
+                return;
+            }
+
+            _configService.UpdateConnectionString(host, port, database, username, password);
 
             lblStatus.ForeColor = Color.FromArgb(180, 150, 50);
             lblStatus.Text = "Подключение...";

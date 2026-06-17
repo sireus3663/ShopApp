@@ -5,18 +5,10 @@
 namespace ShopProject.Migrations
 {
     /// <inheritdoc />
-    public partial class RemoveAmountColumn : Migration
+    public partial class AddProductAmount : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "Amount",
-                table: "products");
-        }
-
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
                 name: "Amount",
@@ -24,6 +16,14 @@ namespace ShopProject.Migrations
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "Amount",
+                table: "products");
         }
     }
 }

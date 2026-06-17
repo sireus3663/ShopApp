@@ -22,6 +22,8 @@ public class User
 
     public bool IsBlocked { get; set; }
 
+    public byte[]? Avatar { get; set; }
+
     public void SetPassword(string password)
     {
         PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);

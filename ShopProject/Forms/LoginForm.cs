@@ -10,10 +10,15 @@ namespace ShopProject.Forms
         private readonly AuthService _authService;
         private readonly UserService _userService;
 
-        private Label lblTitle, lblEmail, lblPassword, lblError;
-        private TextBox txtEmail, txtPassword;
-        private Button btnLogin, btnGoRegister;
-        private CheckBox chkShowPassword;
+        private Label lblTitle = null!;
+        private Label lblEmail = null!;
+        private Label lblPassword = null!;
+        private Label lblError = null!;
+        private TextBox txtEmail = null!;
+        private TextBox txtPassword = null!;
+        private Button btnLogin = null!;
+        private Button btnGoRegister = null!;
+        private CheckBox chkShowPassword = null!;
 
         public LoginForm(AuthService authService, UserService userService)
         {
@@ -24,7 +29,7 @@ namespace ShopProject.Forms
 
         private void InitializeComponents()
         {
-            Text = "ShopProject \u2014 \u0412\u0445\u043E\u0434";
+            Text = "ShopProject — Вход";
             Size = new Size(420, 520);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -33,7 +38,7 @@ namespace ShopProject.Forms
 
             lblTitle = new Label
             {
-                Text = "\u0412\u0445\u043E\u0434 \u0432 \u0430\u043A\u043A\u0430\u0443\u043D\u0442",
+                Text = "Вход в аккаунт",
                 Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 30, 30),
                 AutoSize = true,
@@ -59,7 +64,7 @@ namespace ShopProject.Forms
 
             lblPassword = new Label
             {
-                Text = "\u041F\u0430\u0440\u043E\u043B\u044C",
+                Text = "Пароль",
                 Font = new Font("Segoe UI", 10),
                 ForeColor = Color.Gray,
                 AutoSize = true,
@@ -76,7 +81,7 @@ namespace ShopProject.Forms
 
             chkShowPassword = new CheckBox
             {
-                Text = "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u044C",
+                Text = "Показать пароль",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Gray,
                 Location = new Point(30, 250),
@@ -97,7 +102,7 @@ namespace ShopProject.Forms
 
             btnLogin = new Button
             {
-                Text = "\u0412\u043E\u0439\u0442\u0438",
+                Text = "Войти",
                 Location = new Point(30, 330),
                 Size = new Size(340, 45),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
@@ -111,7 +116,7 @@ namespace ShopProject.Forms
 
             btnGoRegister = new Button
             {
-                Text = "\u041D\u0435\u0442 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430? \u0417\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F",
+                Text = "Нет аккаунта? Зарегистрироваться",
                 Location = new Point(30, 390),
                 Size = new Size(340, 35),
                 Font = new Font("Segoe UI", 10),
@@ -142,7 +147,24 @@ namespace ShopProject.Forms
             lblError.Visible = false;
             try
             {
-                _authService.Login(txtEmail.Text.Trim(), txtPassword.Text);
+                var email = txtEmail.Text.Trim();
+                var password = txtPassword.Text;
+
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    lblError.Text = "Введите email";
+                    lblError.Visible = true;
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    lblError.Text = "Введите пароль";
+                    lblError.Visible = true;
+                    return;
+                }
+
+                _authService.Login(email, password);
                 DialogResult = DialogResult.OK;
                 Close();
             }

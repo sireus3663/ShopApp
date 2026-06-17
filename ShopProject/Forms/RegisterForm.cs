@@ -10,10 +10,20 @@ namespace ShopProject.Forms
         private readonly AuthService _authService;
         private readonly UserService _userService;
 
-        private Label lblTitle, lblName, lblEmail, lblPassword, lblConfirm, lblError, lblSuccess;
-        private TextBox txtName, txtEmail, txtPassword, txtConfirm;
-        private Button btnRegister, btnBack;
-        private CheckBox chkShowPassword;
+        private Label lblTitle = null!;
+        private Label lblName = null!;
+        private Label lblEmail = null!;
+        private Label lblPassword = null!;
+        private Label lblConfirm = null!;
+        private Label lblError = null!;
+        private Label lblSuccess = null!;
+        private TextBox txtName = null!;
+        private TextBox txtEmail = null!;
+        private TextBox txtPassword = null!;
+        private TextBox txtConfirm = null!;
+        private Button btnRegister = null!;
+        private Button btnBack = null!;
+        private CheckBox chkShowPassword = null!;
 
         public RegisterForm(AuthService authService, UserService userService)
         {
@@ -24,7 +34,7 @@ namespace ShopProject.Forms
 
         private void InitializeComponents()
         {
-            Text = "ShopProject \u2014 \u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F";
+            Text = "ShopProject — Регистрация";
             Size = new Size(420, 600);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -33,30 +43,30 @@ namespace ShopProject.Forms
 
             lblTitle = new Label
             {
-                Text = "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F",
+                Text = "Регистрация",
                 Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 30, 30),
                 AutoSize = true,
                 Location = new Point(30, 35)
             };
 
-            lblName = MakeLabel("\u0418\u043C\u044F", 100);
-            txtName = MakeTextBox("\u0418\u0432\u0430\u043D \u0418\u0432\u0430\u043D\u043E\u0432", 122);
+            lblName = MakeLabel("Имя", 100);
+            txtName = MakeTextBox("Иван Иванов", 122);
 
             lblEmail = MakeLabel("Email", 175);
             txtEmail = MakeTextBox("example@mail.com", 197);
 
-            lblPassword = MakeLabel("\u041F\u0430\u0440\u043E\u043B\u044C", 250);
+            lblPassword = MakeLabel("Пароль", 250);
             txtPassword = MakeTextBox("", 272);
             txtPassword.PasswordChar = '\u25CF';
 
-            lblConfirm = MakeLabel("\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C", 325);
+            lblConfirm = MakeLabel("Повторите пароль", 325);
             txtConfirm = MakeTextBox("", 347);
             txtConfirm.PasswordChar = '\u25CF';
 
             chkShowPassword = new CheckBox
             {
-                Text = "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u0438",
+                Text = "Показать пароли",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Gray,
                 Location = new Point(30, 390),
@@ -81,7 +91,7 @@ namespace ShopProject.Forms
 
             lblSuccess = new Label
             {
-                Text = "\u2713 \u0410\u043A\u043A\u0430\u0443\u043D\u0442 \u0441\u043E\u0437\u0434\u0430\u043D! \u041C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438.",
+                Text = "✓ Аккаунт создан! Можете войти.",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Green,
                 Location = new Point(30, 415),
@@ -91,7 +101,7 @@ namespace ShopProject.Forms
 
             btnRegister = new Button
             {
-                Text = "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442",
+                Text = "Создать аккаунт",
                 Location = new Point(30, 460),
                 Size = new Size(340, 45),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
@@ -105,7 +115,7 @@ namespace ShopProject.Forms
 
             btnBack = new Button
             {
-                Text = "\u2190 \u041D\u0430\u0437\u0430\u0434 \u043A\u043E \u0432\u0445\u043E\u0434\u0443",
+                Text = "← Назад ко входу",
                 Location = new Point(30, 515),
                 Size = new Size(340, 35),
                 Font = new Font("Segoe UI", 10),
@@ -146,6 +156,13 @@ namespace ShopProject.Forms
                 return;
             }
 
+            if (txtName.Text.Length < 2)
+            {
+                lblError.Text = "Имя должно содержать минимум 2 символа";
+                lblError.Visible = true;
+                return;
+            }
+
             if (!EmailValidator.IsValid(txtEmail.Text.Trim()))
             {
                 lblError.Text = "Введите корректный email";
@@ -155,7 +172,14 @@ namespace ShopProject.Forms
 
             if (txtPassword.Text != txtConfirm.Text)
             {
-                lblError.Text = "\u041F\u0430\u0440\u043E\u043B\u0438 \u043D\u0435 \u0441\u043E\u0432\u043F\u0430\u0434\u0430\u044E\u0442";
+                lblError.Text = "Пароли не совпадают";
+                lblError.Visible = true;
+                return;
+            }
+
+            if (txtPassword.Text.Length < 8)
+            {
+                lblError.Text = "Пароль должен содержать минимум 8 символов";
                 lblError.Visible = true;
                 return;
             }
@@ -165,6 +189,10 @@ namespace ShopProject.Forms
                 _userService.Register(txtName.Text.Trim(), txtEmail.Text.Trim(), txtPassword.Text);
                 lblSuccess.Visible = true;
                 btnRegister.Enabled = false;
+                txtName.Enabled = false;
+                txtEmail.Enabled = false;
+                txtPassword.Enabled = false;
+                txtConfirm.Enabled = false;
             }
             catch (Exception ex)
             {

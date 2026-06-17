@@ -20,6 +20,8 @@ public class Product
 
     public string Category { get; set; } = string.Empty;
 
+    public int Amount { get; set; }
+
     public bool IsApproved { get; set; }
 
     public byte[]? ProductImage { get; set; }

@@ -1,16 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using ShopProject.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-
 
 namespace ShopProject.Db;
-    public class AppDbContext : DbContext
+
+public class AppDbContext : DbContext
 {
     public DbSet<User> users { get; set; }
     public DbSet<Product> products { get; set; }
@@ -18,66 +11,122 @@ namespace ShopProject.Db;
     public DbSet<Discount> discounts { get; set; }
     public DbSet<Cart> carts { get; set; }
     public DbSet<Favorite> favorites { get; set; }
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
+    public DbSet<RefundRequest> refund_requests { get; set; }
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
-        string jsonString = File.ReadAllText("AppConfig.json");
-        JsonNode root = JsonNode.Parse(jsonString);
-        options.UseNpgsql(
-            root["ConnectionStrings"]?.ToString()
-        );
     }
+
+    public AppDbContext() : base()
+    {
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>()
             .Property(u => u.Role)
             .HasConversion<string>();
 
-        modelBuilder.Entity<Order>()
-            .HasOne<User>()
-            .WithMany()
-            .HasForeignKey(o => o.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Order>()
-            .HasOne<Product>()
-            .WithMany()
-            .HasForeignKey(o => o.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Cart>()
-            .HasOne<User>()
-            .WithMany()
-            .HasForeignKey(c => c.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Cart>()
-            .HasOne<Product>()
-            .WithMany()
-            .HasForeignKey(c => c.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Favorite>()
-            .HasOne<User>()
-            .WithMany()
-            .HasForeignKey(f => f.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Favorite>()
-            .HasOne<Product>()
-            .WithMany()
-            .HasForeignKey(f => f.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Discount>()
-            .HasOne<Product>()
-            .WithOne()
-            .HasForeignKey<Discount>(d => d.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         modelBuilder.Entity<Product>()
             .HasOne<User>()
             .WithMany()
             .HasForeignKey(p => p.SellerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasKey(o => o.Id);
+            entity.Property(o => o.UserId).IsRequired();
+            entity.Property(o => o.ProductId).IsRequired();
+            entity.Property(o => o.Count).IsRequired();
+            entity.Property(o => o.Price).IsRequired();
+            entity.Property(o => o.CreatedAt).IsRequired();
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(o => o.Product)
+                .WithMany()
+                .HasForeignKey(o => o.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.UserId).IsRequired();
+            entity.Property(c => c.ProductId).IsRequired();
+            entity.Property(c => c.Count).IsRequired();
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(c => c.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Favorite>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.UserId).IsRequired();
+            entity.Property(f => f.ProductId).IsRequired();
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(f => f.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RefundRequest>(entity =>
+        {
+            entity.ToTable("refund_requests");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.UserId).IsRequired();
+            entity.Property(r => r.ProductId).IsRequired();
+            entity.Property(r => r.OrderId).IsRequired();
+            entity.Property(r => r.Count).IsRequired();
+            entity.Property(r => r.Reason).IsRequired().HasMaxLength(500);
+            entity.Property(r => r.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.CreatedAt).IsRequired();
+            entity.Property(r => r.ReviewComment).HasMaxLength(500);
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.Product)
+                .WithMany()
+                .HasForeignKey(r => r.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.Order)
+                .WithMany()
+                .HasForeignKey(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Discount>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.ProductId).IsRequired();
+            entity.Property(d => d.Percent).IsRequired();
+
+            entity.HasOne<Product>()
+                .WithOne()
+                .HasForeignKey<Discount>(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
