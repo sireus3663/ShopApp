@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ShopProject.Db;
 using ShopProject.Models;
 using System;
@@ -11,17 +12,17 @@ namespace ShopProject.Services
         public User? currentUser => _currentUser;
 
         private readonly UserRepository _userRepository;
-        private readonly AppConfigService? _configService;
+        private readonly AppDbContext _context;
 
-        public AuthService(AppDbContext context, AppConfigService? configService = null)
+        public AuthService(AppDbContext context)
         {
             _userRepository = new UserRepository(context);
-            _configService = configService;
+            _context = context;
         }
 
         public User? Get_currentUser() => _currentUser;
 
-        public void Login(string email, string password)
+        public async Task<User> Login(string email, string password)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 throw new Exception("поля не заполнены");
@@ -37,8 +38,25 @@ namespace ShopProject.Services
             if (user.IsBlocked)
                 throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
 
+            var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+
+            var session = new Session
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Token = token,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                IsActive = true
+            };
+
+            _context.sessions.Add(session);
+            await _context.SaveChangesAsync();
+
+            TokenStorage.Save(token);
             _currentUser = user;
-            _configService?.SetCurrentUserId(user.Id);
+
+            return user;
         }
 
         public void LoginById(User user)
@@ -46,10 +64,40 @@ namespace ShopProject.Services
             _currentUser = user;
         }
 
-        public void Logout()
+        public async Task Logout()
         {
+            var token = TokenStorage.Get();
+            if (!string.IsNullOrEmpty(token))
+            {
+                var session = await _context.sessions.FirstOrDefaultAsync(s => s.Token == token);
+                if (session != null)
+                {
+                    session.IsActive = false;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            TokenStorage.Clear();
             _currentUser = null;
-            _configService?.SetCurrentUserId(null);
+        }
+
+        public async Task<bool> RestoreSession()
+        {
+            var token = TokenStorage.Get();
+            if (string.IsNullOrEmpty(token)) return false;
+
+            var session = await _context.sessions
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Token == token && s.IsActive && s.ExpiresAt > DateTime.UtcNow);
+
+            if (session == null)
+            {
+                TokenStorage.Clear();
+                return false;
+            }
+
+            _currentUser = session.User;
+            return true;
         }
 
         public User RequireUser()
@@ -59,31 +107,5 @@ namespace ShopProject.Services
             return _currentUser;
         }
 
-        public async Task LoginAsync(string email, string password)
-        {
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                throw new Exception("поля не заполнены");
-
-            if (!await _userRepository.ExistsAsync(email))
-                throw new Exception("пользователя с таким email не существует");
-
-            User user = await _userRepository.GetByEmailAsync(email);
-
-            if (!user.VerifyPassword(password))
-                throw new Exception("пароль неверный");
-
-            if (user.IsBlocked)
-                throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
-
-            _currentUser = user;
-            _configService?.SetCurrentUserId(user.Id);
-        }
-
-        public async Task<User> RequireUserAsync()
-        {
-            if (_currentUser == null)
-                throw new InvalidOperationException("Пользователь не авторизован");
-            return await Task.FromResult(_currentUser);
-        }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using ShopProject.ConsoleCommands.AuthServiceCommand;
-using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.ConsoleCommands.BaseCommands;
 using ShopProject.ConsoleCommands.CartServiceCommand;
 using ShopProject.ConsoleCommands.FavoriteServiceCommand;
 using ShopProject.ConsoleCommands.ModeratorServiceCommand;

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.ConsoleCommands.BaseCommands;
 using ShopProject.Db;
 using ShopProject.Models;
 using ShopProject.Services;

@@ -12,8 +12,8 @@ using ShopProject.Db;
 namespace ShopProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260613060734_AddProductImage")]
-    partial class AddProductImage
+    [Migration("20260617171012_token")]
+    partial class token
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -157,6 +157,35 @@ namespace ShopProject.Migrations
                     b.ToTable("products");
                 });
 
+            modelBuilder.Entity("ShopProject.Models.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("sessions");
+                });
+
             modelBuilder.Entity("ShopProject.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -250,6 +279,17 @@ namespace ShopProject.Migrations
                         .WithMany()
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("ShopProject.Models.Session", b =>
+                {
+                    b.HasOne("ShopProject.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

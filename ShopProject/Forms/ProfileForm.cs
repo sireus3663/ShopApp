@@ -232,9 +232,9 @@ namespace ShopProject.Forms
             btn.ForeColor = Color.White;
         }
 
-        private void BtnLogout_Click(object sender, EventArgs e)
+        private async void BtnLogout_Click(object sender, EventArgs e)
         {
-            _authService.Logout();
+            await _authService.Logout();
             DialogResult = DialogResult.Abort;
             Close();
         }
@@ -260,8 +260,7 @@ namespace ShopProject.Forms
         private void OpenConsole()
         {
             var user = _authService.RequireUser();
-            var form = new AdminConsoleForm(user);
-            form.ShowDialog();
+            ConsoleHelper.OpenAdminConsole(user);
         }
 
         private void OpenCreateProductForm()
