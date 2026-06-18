@@ -1,9 +1,9 @@
-﻿using ShopProject.Services;
+using ShopProject.Services;
 using ShopProject.Models;
 using System;
 using System.Linq;
 
-namespace ShopProject.ConsoleCommands.BasseCommands
+namespace ShopProject.ConsoleCommands.BaseCommands
 {
     public class MenuCommand : BaseCommand
     {

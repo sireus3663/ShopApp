@@ -41,21 +41,6 @@ public class AppConfigService
     }
 
 
-    public Guid? GetCurrentUserId()
-    {
-        var root = Read();
-        var val = root["CurrentUserId"]?.ToString();
-        return Guid.TryParse(val, out var id) ? id : null;
-    }
-
-    public void SetCurrentUserId(Guid? userId)
-    {
-        var root = Read();
-        root["CurrentUserId"] = userId.HasValue ? JsonValue.Create(userId.Value.ToString()) : null;
-        Write(root);
-    }
-
-
     private JsonObject Read()
     {
         if (!File.Exists(_configPath))

@@ -1,11 +1,11 @@
-﻿using ShopProject.Models;
+using ShopProject.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.ConsoleCommands.BasseCommands
+namespace ShopProject.ConsoleCommands.BaseCommands
 {
     public abstract class BaseCommand : ICommand
     {

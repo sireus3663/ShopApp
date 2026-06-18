@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShopProject.ConsoleCommands.BasseCommands
+namespace ShopProject.ConsoleCommands.BaseCommands
 {
     public class HelpCommand : BaseCommand
     {
@@ -25,14 +25,11 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 
         public override void Execute(string[] args)
         {
-            // Показываем справку
             _registry.ShowHelp();
 
-            // Пауза, чтобы пользователь успел прочитать
             Console.WriteLine("\nНажмите любую клавишу для открытия меню...");
             Console.ReadKey();
 
-            // Открываем меню
             var menuCommand = new MenuCommand(_authService, _registry);
             menuCommand.Execute(Array.Empty<string>());
         }

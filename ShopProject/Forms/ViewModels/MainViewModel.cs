@@ -301,10 +301,5 @@ namespace ShopProject.Forms.ViewModels
 
 
 
-        public async Task LoginAsync(string email, string password)
-        {
-            await _authService.LoginAsync(email, password);
-            await LoadFavoritesAsync();
-        }
     }
 }

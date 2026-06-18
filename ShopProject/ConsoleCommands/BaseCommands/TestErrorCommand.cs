@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ShopProject.Services;
 
-namespace ShopProject.ConsoleCommands.BasseCommands
+namespace ShopProject.ConsoleCommands.BaseCommands
 {
     public class TestErrorCommand : BaseCommand
     {
@@ -19,12 +19,6 @@ namespace ShopProject.ConsoleCommands.BasseCommands
         public override void Execute(string[] args)
         {
             throw new Exception("тестовая ошибка");
-            /*try { throw new Exception("Это тестовая ошибка для проверки логирование"); }
-            catch (Exception ex)
-            {
-                Error(ex.Message);
-                _logger.Error("Тестовая ошибка", ex);
-            }*/
         }
 
     }

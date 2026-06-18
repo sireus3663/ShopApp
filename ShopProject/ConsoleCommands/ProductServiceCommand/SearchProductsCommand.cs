@@ -1,4 +1,4 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
+﻿using ShopProject.ConsoleCommands.BaseCommands;
 using ShopProject.Db;
 using System;
 using System.Collections.Generic;

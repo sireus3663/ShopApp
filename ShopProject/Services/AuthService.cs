@@ -12,13 +12,11 @@ namespace ShopProject.Services
         public User? currentUser => _currentUser;
 
         private readonly UserRepository _userRepository;
-        private readonly AppConfigService? _configService;
         private readonly AppDbContext _context;
 
-        public AuthService(AppDbContext context, AppConfigService? configService = null)
+        public AuthService(AppDbContext context)
         {
             _userRepository = new UserRepository(context);
-            _configService = configService;
             _context = context;
         }
 
@@ -109,31 +107,5 @@ namespace ShopProject.Services
             return _currentUser;
         }
 
-        public async Task LoginAsync(string email, string password)
-        {
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                throw new Exception("поля не заполнены");
-
-            if (!await _userRepository.ExistsAsync(email))
-                throw new Exception("пользователя с таким email не существует");
-
-            User user = await _userRepository.GetByEmailAsync(email);
-
-            if (!user.VerifyPassword(password))
-                throw new Exception("пароль неверный");
-
-            if (user.IsBlocked)
-                throw new Exception("Ваш аккаунт заблокирован. Обратитесь к администратору.");
-
-            _currentUser = user;
-            _configService?.SetCurrentUserId(user.Id);
-        }
-
-        public async Task<User> RequireUserAsync()
-        {
-            if (_currentUser == null)
-                throw new InvalidOperationException("Пользователь не авторизован");
-            return await Task.FromResult(_currentUser);
-        }
     }
 }

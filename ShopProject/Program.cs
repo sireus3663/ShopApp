@@ -1,73 +1,44 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using ShopProject.Db;
+﻿using ShopProject.Db;
 using ShopProject.Forms;
 using ShopProject.Services;
-using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace ShopProject
 {
     internal class Program
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool AllocConsole();
-
         [STAThread]
         static async Task Main(string[] args)
         {
             if (args.Length > 0 && args[0] == "--console")
             {
-                AllocConsole();
-
-                string autoLoginEmail = null;
-
-                for (int i = 0; i < args.Length; i++)
-                {
-                    if (args[i] == "--auto-login" && i + 1 < args.Length)
-                    {
-                        autoLoginEmail = args[i + 1];
-                        break;
-                    }
-                }
-
-                Console.Title = "Shop Admin Console";
-
-                Console.Clear();
-                Console.WriteLine("=== ADMIN CONSOLE ===");
-
-                if (!string.IsNullOrEmpty(autoLoginEmail))
-                {
-                    Console.WriteLine($"Auto-login: {autoLoginEmail}");
-                }
-
-                Console.WriteLine();
-
-                ConsoleMode.Run(autoLoginEmail);
+                ConsoleMode.Run(args);
                 return;
             }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            try
+            var logger = new LoggerService();
+            var configService = new AppConfigService();
+            var startup = new StartupService(logger, configService);
+
+            var context = startup.TryConnect();
+            if (context == null)
             {
-                var context = new AppDbContext();
-                await context.Database.MigrateAsync();
-
-                var authService = new AuthService(context);
-                var logger = new LoggerService();
-                var userService = new UserService(context, authService, logger);
-
-                await authService.RestoreSession();
-
-                Application.Run(new MainForm(authService, context));
+                using var form = new DbConnectionForm();
+                if (form.ShowDialog() != DialogResult.OK) return;
+                context = form.ConnectedContext;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка: {ex.Message}");
-            }
+
+            startup.InitializeOnFirstLaunch(context);
+
+            var authService = new AuthService(context);
+            await authService.RestoreSession();
+
+            Application.Run(new MainForm(authService, context));
         }
     }
 }
