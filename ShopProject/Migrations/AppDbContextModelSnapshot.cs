@@ -160,6 +160,9 @@ namespace ShopProject.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<byte[]>("Avatar")
+                        .HasColumnType("bytea");
+
                     b.Property<decimal>("Balance")
                         .HasColumnType("numeric");
 

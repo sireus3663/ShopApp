@@ -12,8 +12,8 @@ using ShopProject.Db;
 namespace ShopProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260613060012_RemoveAmountColumn")]
-    partial class RemoveAmountColumn
+    [Migration("20260617172351_SuperCleanInit")]
+    partial class SuperCleanInit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -143,6 +143,9 @@ namespace ShopProject.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
+
+                    b.Property<byte[]>("ProductImage")
+                        .HasColumnType("bytea");
 
                     b.Property<Guid?>("SellerId")
                         .HasColumnType("uuid");

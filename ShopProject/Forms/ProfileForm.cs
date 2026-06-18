@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using ShopProject.Db;
@@ -17,6 +18,7 @@ namespace ShopProject.Forms
         private Panel pnlNav;
         private Button btnCart, btnFavorites, btnProfile, btnLogout;
         private Label lblAppName, lblUserName, lblUserRole;
+        private PictureBox avatarNav;
 
         private Panel pnlContent;
         private CartPanel cartPanel;
@@ -67,26 +69,47 @@ namespace ShopProject.Forms
             };
 
             var user = _authService.currentUser;
+
+            avatarNav = new PictureBox
+            {
+                Location = new Point(20, 60),
+                Size = new Size(50, 50),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.FromArgb(51, 65, 85)
+            };
+            if (user != null && user.Avatar != null && user.Avatar.Length > 0)
+            {
+                using (var ms = new MemoryStream(user.Avatar))
+                {
+                    avatarNav.Image = new Bitmap(ms);
+                }
+            }
+            else
+            {
+                avatarNav.Image = CreateAvatarLetterNav(user?.Name, avatarNav.Width, avatarNav.Height);
+            }
+            pnlNav.Controls.Add(avatarNav);
+
             lblUserName = new Label
             {
                 Text = user?.Name ?? "\u0413\u043E\u0441\u0442\u044C",
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = Color.White,
-                Location = new Point(20, 75),
-                Size = new Size(180, 22)
+                Location = new Point(80, 62),
+                Size = new Size(120, 22)
             };
             lblUserRole = new Label
             {
                 Text = user != null ? $"[{user.Role}]  \uD83D\uDCB0 {user.Balance:N0} \u20BD" : "",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.FromArgb(148, 163, 184),
-                Location = new Point(20, 98),
-                Size = new Size(180, 18)
+                Location = new Point(80, 86),
+                Size = new Size(120, 18)
             };
 
             var sep = new Label
             {
-                Location = new Point(0, 125),
+                Location = new Point(0, 120),
                 Size = new Size(220, 1),
                 BackColor = Color.FromArgb(51, 65, 85)
             };
@@ -200,7 +223,7 @@ namespace ShopProject.Forms
 
             cartPanel = new CartPanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
             favoritesPanel = new FavoritesPanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
-            profilePanel = new ProfilePanel(_authService) { Dock = DockStyle.Fill, Visible = false };
+            profilePanel = new ProfilePanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
 
             pnlContent.Controls.AddRange(new Control[]
             {
@@ -254,7 +277,83 @@ namespace ShopProject.Forms
 
         private void OpenStatistics()
         {
-            MessageBox.Show("Статистика маркетплейса в разработке", "Статистика");
+            try
+            {
+                var orderRepo = new OrderRepository(_context);
+                var productRepo = new ProductRepository(_context);
+                var discountRepo = new DiscountRepository(_context);
+                var discountService = new DiscountService(discountRepo, _authService, productRepo);
+                var statService = new StatisticService(orderRepo, productRepo, discountService);
+
+                var allProducts = productRepo.GetAll();
+                var allOrders = orderRepo.GetAll();
+                var user = _authService.currentUser;
+
+                var statsForm = new Form
+                {
+                    Text = "Статистика",
+                    Size = new Size(600, 500),
+                    StartPosition = FormStartPosition.CenterParent,
+                    BackColor = Color.FromArgb(240, 240, 240)
+                };
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"Товаров в каталоге: {allProducts.Count(p => p.IsApproved)}");
+                sb.AppendLine($"На модерации: {allProducts.Count(p => !p.IsApproved)}");
+                sb.AppendLine($"Всего заказов: {allOrders.Count}");
+                sb.AppendLine($"Общая выручка: {allOrders.Sum(o => o.Price):N0} руб.");
+                sb.AppendLine();
+
+                if (user.Role == Role.Seller)
+                {
+                    var myProducts = allProducts.Where(p => p.SellerId == user.Id).ToList();
+                    var myProductIds = myProducts.Select(p => p.Id).ToList();
+                    var myOrders = allOrders.Where(o => myProductIds.Contains(o.ProductId)).ToList();
+
+                    sb.AppendLine($"--- Продавец: {user.Name} ---");
+                    sb.AppendLine($"Моих товаров: {myProducts.Count}");
+                    sb.AppendLine($"Продаж: {myOrders.Count}");
+                    sb.AppendLine($"Доход: {myOrders.Sum(o => o.Price):N0} руб.");
+
+                    foreach (var p in myProducts)
+                    {
+                        var sales = myOrders.Count(o => o.ProductId == p.Id);
+                        var revenue = myOrders.Where(o => o.ProductId == p.Id).Sum(o => o.Price);
+                        sb.AppendLine($"  • {p.Name} — {sales} продаж, {revenue:N0} руб.");
+                    }
+                }
+
+                var textBox = new TextBox
+                {
+                    Multiline = true,
+                    ReadOnly = true,
+                    Dock = DockStyle.Fill,
+                    Font = new Font("Consolas", 11),
+                    BackColor = Color.White,
+                    ForeColor = Color.FromArgb(30, 30, 30),
+                    Text = sb.ToString(),
+                    Padding = new Padding(10)
+                };
+
+                var closeBtn = new Button
+                {
+                    Text = "Закрыть",
+                    Dock = DockStyle.Bottom,
+                    Height = 40,
+                    BackColor = Color.FromArgb(80, 80, 85),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat
+                };
+                closeBtn.Click += (s, e) => statsForm.Close();
+
+                statsForm.Controls.Add(textBox);
+                statsForm.Controls.Add(closeBtn);
+                statsForm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ErrorForm.Show(ex.Message, ex);
+            }
         }
 
         private void OpenConsole()
@@ -272,7 +371,25 @@ namespace ShopProject.Forms
 
         private void OpenComplaints()
         {
-            MessageBox.Show("Список жалоб", "Модерация");
+            MessageBox.Show("Модерация товаров работает через панель «Модерация».\nСистема жалоб будет добавлена позднее.", "Модерация");
+        }
+
+        private Bitmap CreateAvatarLetterNav(string? name, int width, int height)
+        {
+            var bmp = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.FromArgb(51, 65, 85));
+                var letter = !string.IsNullOrEmpty(name) ? name.Substring(0, 1).ToUpper() : "?";
+                using (var font = new Font("Segoe UI", width * 0.4f, FontStyle.Bold))
+                {
+                    var size = g.MeasureString(letter, font);
+                    g.DrawString(letter, font, Brushes.White,
+                        (width - size.Width) / 2,
+                        (height - size.Height) / 2 + 1);
+                }
+            }
+            return bmp;
         }
 
         private void ShowMyProducts()
@@ -289,9 +406,50 @@ namespace ShopProject.Forms
                     return;
                 }
 
-                var text = string.Join(Environment.NewLine,
-                    products.Select(p => $"{p.Name} - {p.Price} руб. ({(p.IsApproved ? "Одобрен" : "На модерации")})"));
-                MessageBox.Show(text, "Мои товары");
+                var form = new Form
+                {
+                    Text = $"Мои товары — {user.Name}",
+                    Size = new Size(700, 500),
+                    StartPosition = FormStartPosition.CenterParent,
+                    BackColor = Color.FromArgb(240, 240, 240)
+                };
+
+                var grid = new DataGridView
+                {
+                    Dock = DockStyle.Fill,
+                    BackgroundColor = Color.White,
+                    ReadOnly = true,
+                    AllowUserToAddRows = false,
+                    SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+                };
+
+                var data = products.Select(p => new
+                {
+                    p.Id,
+                    Название = p.Name,
+                    Категория = p.Category,
+                    Цена = $"{p.Price:N0} руб.",
+                    Статус = p.IsApproved ? "Одобрен" : "На модерации"
+                }).ToList();
+
+                grid.DataSource = data;
+                grid.Columns["Id"].Visible = false;
+
+                var closeBtn = new Button
+                {
+                    Text = "Закрыть",
+                    Dock = DockStyle.Bottom,
+                    Height = 40,
+                    BackColor = Color.FromArgb(80, 80, 85),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat
+                };
+                closeBtn.Click += (s, e) => form.Close();
+
+                form.Controls.Add(grid);
+                form.Controls.Add(closeBtn);
+                form.ShowDialog();
             }
             catch (Exception ex)
             {

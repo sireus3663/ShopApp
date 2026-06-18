@@ -12,8 +12,8 @@ using ShopProject.Db;
 namespace ShopProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260613060734_AddProductImage")]
-    partial class AddProductImage
+    [Migration("20260617234120_AddAvatarColumn")]
+    partial class AddAvatarColumn
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -162,6 +162,9 @@ namespace ShopProject.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Avatar")
+                        .HasColumnType("bytea");
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("numeric");

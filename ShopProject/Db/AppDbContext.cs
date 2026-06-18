@@ -20,7 +20,8 @@ namespace ShopProject.Db;
     public DbSet<Favorite> favorites { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        string jsonString = File.ReadAllText("AppConfig.json");
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppConfig.json");
+        string jsonString = File.ReadAllText(configPath);
         JsonNode root = JsonNode.Parse(jsonString);
         options.UseNpgsql(
             root["ConnectionStrings"]?.ToString()

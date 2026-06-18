@@ -169,8 +169,86 @@ namespace ShopProject.Forms
 
         private void Checkout()
         {
-            MessageBox.Show("\u0417\u0430\u043A\u0430\u0437 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D!\n\n\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u0435 OrderService \u0434\u043B\u044F \u043F\u043E\u043B\u043D\u043E\u0439 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438.",
-                "\u0417\u0430\u043A\u0430\u0437", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var user = _authService.currentUser;
+            if (user == null)
+            {
+                MessageBox.Show("Войдите в аккаунт", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                var cartRepo = new CartRepository(_context);
+                var productRepo = new ProductRepository(_context);
+                var discountRepo = new DiscountRepository(_context);
+                var discountService = new DiscountService(discountRepo, _authService, productRepo);
+                var userRepo = new UserRepository(_context);
+
+                var items = cartRepo.GetByUser(user.Id);
+                if (!items.Any())
+                {
+                    MessageBox.Show("Корзина пуста", "Ошибка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                decimal total = 0;
+                foreach (var item in items)
+                {
+                    var product = productRepo.GetById(item.ProductId);
+                    if (product != null)
+                        total += discountService.CalculatePrice(product) * item.Count;
+                }
+
+                if (user.Balance < total)
+                {
+                    MessageBox.Show($"Недостаточно средств. Нужно: {total:N0} руб., доступно: {user.Balance:N0} руб.",
+                        "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var confirm = MessageBox.Show(
+                    $"Подтвердите покупку на сумму {total:N0} руб.\nТекущий баланс: {user.Balance:N0} руб.",
+                    "Оформление заказа",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (confirm != DialogResult.Yes) return;
+
+                user.Balance -= total;
+                userRepo.Update(user);
+
+                foreach (var item in items)
+                {
+                    var product = productRepo.GetById(item.ProductId);
+                    var price = product != null
+                        ? discountService.CalculatePrice(product) * item.Count
+                        : 0;
+
+                    var order = new Order
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        ProductId = item.ProductId,
+                        Count = item.Count,
+                        Price = price,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    var orderRepo = new OrderRepository(_context);
+                    orderRepo.Add(order);
+                    cartRepo.Delete(item.Id);
+                }
+
+                MessageBox.Show($"Покупка оформлена на сумму {total:N0} руб.!", "Успешно",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                Refresh();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при оформлении заказа: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 
@@ -333,15 +411,19 @@ namespace ShopProject.Forms
     public class ProfilePanel : Panel, IRefreshable
     {
         private readonly AuthService _authService;
+        private readonly AppDbContext _context;
         private Label lblTitle, lblName, lblEmail, lblRole, lblBalance,
                       lblNameVal, lblEmailVal, lblRoleVal, lblBalanceVal,
                       lblStats, lblOrdersCount;
         private Button btnEditName, btnChangePassword;
         private GroupBox grpInfo, grpStats;
+        private PictureBox avatarProfile;
+        private Button btnChangeAvatar;
 
-        public ProfilePanel(AuthService authService)
+        public ProfilePanel(AuthService authService, AppDbContext context)
         {
             _authService = authService;
+            _context = context;
             InitializeComponents();
         }
 
@@ -358,12 +440,37 @@ namespace ShopProject.Forms
                 AutoSize = true
             };
 
+            avatarProfile = new PictureBox
+            {
+                Location = new Point(470, 25),
+                Size = new Size(100, 100),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.FromArgb(220, 220, 220),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            Controls.Add(avatarProfile);
+
+            btnChangeAvatar = new Button
+            {
+                Text = "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
+                Location = new Point(470, 132),
+                Size = new Size(100, 28),
+                Font = new Font("Segoe UI", 8),
+                BackColor = Color.FromArgb(80, 80, 85),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnChangeAvatar.FlatAppearance.BorderSize = 0;
+            btnChangeAvatar.Click += BtnChangeAvatar_Click;
+            Controls.Add(btnChangeAvatar);
+
             grpInfo = new GroupBox
             {
                 Text = "\u041C\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435",
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 Location = new Point(25, 65),
-                Size = new Size(420, 220),
+                Size = new Size(420, 260),
                 BackColor = Color.White
             };
 
@@ -383,7 +490,7 @@ namespace ShopProject.Forms
             btnEditName = new Button
             {
                 Text = "\u270F \u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043C\u044F",
-                Location = new Point(15, 175),
+                Location = new Point(15, 180),
                 Size = new Size(160, 32),
                 Font = new Font("Segoe UI", 9),
                 BackColor = Color.FromArgb(37, 99, 235),
@@ -397,7 +504,7 @@ namespace ShopProject.Forms
             btnChangePassword = new Button
             {
                 Text = "\uD83D\uDD12 \u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u044C",
-                Location = new Point(185, 175),
+                Location = new Point(185, 180),
                 Size = new Size(160, 32),
                 Font = new Font("Segoe UI", 9),
                 BackColor = Color.FromArgb(100, 116, 139),
@@ -414,7 +521,7 @@ namespace ShopProject.Forms
             {
                 Text = "\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430",
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                Location = new Point(25, 305),
+                Location = new Point(25, 345),
                 Size = new Size(420, 100),
                 BackColor = Color.White
             };
@@ -447,6 +554,25 @@ namespace ShopProject.Forms
             lblEmailVal.Text = user.Email;
             lblRoleVal.Text = user.Role.ToString();
             lblBalanceVal.Text = $"{user.Balance:N0} \u20BD";
+
+            if (user.Avatar != null && user.Avatar.Length > 0)
+            {
+                using (var ms = new MemoryStream(user.Avatar))
+                {
+                    avatarProfile.Image?.Dispose();
+                    avatarProfile.Image = new Bitmap(ms);
+                }
+            }
+            else
+            {
+                avatarProfile.Image?.Dispose();
+                avatarProfile.Image = CreateAvatarLetter(user.Name, avatarProfile.Width, avatarProfile.Height);
+            }
+            avatarProfile.Visible = true;
+
+            var orderRepo = new OrderRepository(_context);
+            var ordersCount = orderRepo.GetByUser(user.Id).Count;
+            lblOrdersCount.Text = $"\u0417\u0430\u043A\u0430\u0437\u043E\u0432: {ordersCount}";
         }
 
         private void BtnEditName_Click(object sender, EventArgs e)
@@ -461,15 +587,104 @@ namespace ShopProject.Forms
             {
                 user.Name = input;
                 lblNameVal.Text = input;
+                var userRepo = new UserRepository(_context);
+                userRepo.Update(user);
                 MessageBox.Show("\u0418\u043C\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E!", "\u0413\u043E\u0442\u043E\u0432\u043E",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
+        private void BtnChangeAvatar_Click(object sender, EventArgs e)
+        {
+            var user = _authService.currentUser;
+            if (user == null) return;
+
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp";
+                ofd.Title = "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0430\u0432\u0430\u0442\u0430\u0440";
+
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        var bytes = File.ReadAllBytes(ofd.FileName);
+                        user.Avatar = bytes;
+                        var userRepo = new UserRepository(_context);
+                        userRepo.Update(user);
+
+                        avatarProfile.Image?.Dispose();
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            avatarProfile.Image = new Bitmap(ms);
+                        }
+                        MessageBox.Show("\u0410\u0432\u0430\u0442\u0430\u0440 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D!", "\u0413\u043E\u0442\u043E\u0432\u043E",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"\u041E\u0448\u0438\u0431\u043A\u0430: {ex.Message}", "\u041E\u0448\u0438\u0431\u043A\u0430",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
         private void BtnChangePassword_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("\u0424\u0443\u043D\u043A\u0446\u0438\u044F \u0441\u043C\u0435\u043D\u044B \u043F\u0430\u0440\u043E\u043B\u044F \u0431\u0443\u0434\u0435\u0442 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430.\n(\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u044C UserService.ChangePassword)",
-                "\u0412 \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0435", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var user = _authService.currentUser;
+            if (user == null) return;
+
+            var oldPwd = Microsoft.VisualBasic.Interaction.InputBox(
+                "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0442\u0435\u043A\u0443\u0449\u0438\u0439 \u043F\u0430\u0440\u043E\u043B\u044C:", "\u0421\u043C\u0435\u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u044F", "");
+
+            if (string.IsNullOrEmpty(oldPwd) || !user.VerifyPassword(oldPwd))
+            {
+                MessageBox.Show("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C!", "\u041E\u0448\u0438\u0431\u043A\u0430",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var newPwd = Microsoft.VisualBasic.Interaction.InputBox(
+                "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u043E\u0432\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C (\u043C\u0438\u043D. 8 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432, \u0445\u043E\u0442\u044F \u0431\u044B 1 \u0446\u0438\u0444\u0440\u0430):", "\u0421\u043C\u0435\u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u044F", "");
+
+            if (string.IsNullOrWhiteSpace(newPwd) || newPwd.Length < 8)
+            {
+                MessageBox.Show("\u041F\u0430\u0440\u043E\u043B\u044C \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u043C\u0438\u043D\u0438\u043C\u0443\u043C 8 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432!", "\u041E\u0448\u0438\u0431\u043A\u0430",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(newPwd, @"\d"))
+            {
+                MessageBox.Show("\u041F\u0430\u0440\u043E\u043B\u044C \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0445\u043E\u0442\u044F \u0431\u044B \u043E\u0434\u043D\u0443 \u0446\u0438\u0444\u0440\u0443!", "\u041E\u0448\u0438\u0431\u043A\u0430",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            user.SetPassword(newPwd);
+            var userRepo = new UserRepository(_context);
+            userRepo.Update(user);
+            MessageBox.Show("\u041F\u0430\u0440\u043E\u043B\u044C \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0438\u0437\u043C\u0435\u043D\u0451\u043D!", "\u0413\u043E\u0442\u043E\u0432\u043E",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private Bitmap CreateAvatarLetter(string name, int width, int height)
+        {
+            var bmp = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.FromArgb(200, 200, 200));
+                var letter = !string.IsNullOrEmpty(name) ? name.Substring(0, 1).ToUpper() : "?";
+                using (var font = new Font("Segoe UI", width * 0.4f, FontStyle.Bold))
+                {
+                    var size = g.MeasureString(letter, font);
+                    g.DrawString(letter, font, Brushes.White,
+                        (width - size.Width) / 2,
+                        (height - size.Height) / 2 + 1);
+                }
+            }
+            return bmp;
         }
     }
 }

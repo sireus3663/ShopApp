@@ -7,9 +7,9 @@ public class AppConfigService
 {
     private readonly string _configPath;
 
-    public AppConfigService(string configPath = "AppConfig.json")
+    public AppConfigService(string configPath = null)
     {
-        _configPath = configPath;
+        _configPath = configPath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppConfig.json");
     }
 
 
