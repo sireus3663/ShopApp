@@ -1,6 +1,18 @@
-using ShopProject.Services.Interfaces;
+using System;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
+namespace ShopProject.Services
+{
+    public interface IAppConfigService
+    {
+        string GetConnectionString();
+        void UpdateDbPassword(string newPassword);
+        void UpdateConnectionString(string host, string port, string database, string username, string password);
+        Guid? GetCurrentUserId();
+        void SetCurrentUserId(Guid? userId);
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -57,7 +69,7 @@ namespace ShopProject.Services
         private JsonObject Read()
         {
             if (!File.Exists(_configPath))
-                throw new FileNotFoundException($"Файл конфигурации не найден: {_configPath}");
+                throw new FileNotFoundException($"Р В¤Р В°Р в„–Р В» Р С”Р С•Р Р…РЎвЂћР С‘Р С–РЎС“РЎР‚Р В°РЎвЂ Р С‘Р С‘ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…: {_configPath}");
             var json = File.ReadAllText(_configPath);
             return JsonNode.Parse(json)?.AsObject() ?? new JsonObject();
         }

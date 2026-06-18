@@ -1,11 +1,27 @@
-﻿using ShopProject.Db;
-using ShopProject.Db.Interfaces;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using ShopProject.Db;
+using System.Linq;
+
+namespace ShopProject.Services
+{
+    public interface ICartService
+    {
+        void AddToCart(Guid productId);
+        void DeleteCart(Guid cartId);
+        void RemoveFromCart(Guid productId);
+        List<Cart> GetCart(Guid userId);
+        List<Cart> GetCurrentUserCart();
+
+        Task AddToCartAsync(Guid productId);
+        Task DeleteCartAsync(Guid cartId);
+        Task RemoveFromCartAsync(Guid productId);
+        Task<List<Cart>> GetCartAsync(Guid userId);
+        Task<List<Cart>> GetCurrentUserCartAsync();
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -23,7 +39,7 @@ namespace ShopProject.Services
         public void AddToCart(Guid productId)
         {
             if (!PermissionService.CanBuy(_authService.RequireUser().Role))
-                throw new Exception("У вашей роли нет прав для добавления товаров в корзину.");
+                throw new Exception("РЈ РІР°С€РµР№ СЂРѕР»Рё РЅРµС‚ РїСЂР°РІ РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ С‚РѕРІР°СЂРѕРІ РІ РєРѕСЂР·РёРЅСѓ.");
 
             var existingItem = _cartRepository.GetCartItem(_authService.RequireUser().Id, productId);
 
@@ -49,7 +65,7 @@ namespace ShopProject.Services
         public void DeleteCart(Guid cartId)
         {
             if (_cartRepository.GetById(cartId) == null)
-                throw new Exception("не удалось найти корзину");
+                throw new Exception("РЅРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РєРѕСЂР·РёРЅСѓ");
             _cartRepository.Delete(cartId);
         }
 
@@ -57,7 +73,7 @@ namespace ShopProject.Services
         {
             var existingItem = _cartRepository.GetCartItem(_authService.RequireUser().Id, productId);
             if (existingItem == null)
-                throw new Exception("такого товара нет в тележке");
+                throw new Exception("С‚Р°РєРѕРіРѕ С‚РѕРІР°СЂР° РЅРµС‚ РІ С‚РµР»РµР¶РєРµ");
 
             if (existingItem.Count > 1)
             {
@@ -74,7 +90,7 @@ namespace ShopProject.Services
         public List<Cart> GetCart(Guid userId)
         {
             if (!PermissionService.CanAdministrate(_authService.RequireUser().Role))
-                throw new Exception("У вашей роли нет прав для просмотра чужих корзин");
+                throw new Exception("РЈ РІР°С€РµР№ СЂРѕР»Рё РЅРµС‚ РїСЂР°РІ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° С‡СѓР¶РёС… РєРѕСЂР·РёРЅ");
             return _cartRepository.GetByUser(userId);
         }
 
@@ -86,7 +102,7 @@ namespace ShopProject.Services
         public async Task AddToCartAsync(Guid productId)
         {
             if (!PermissionService.CanBuy(_authService.RequireUser().Role))
-                throw new Exception("У вашей роли нет прав для добавления товаров в корзину.");
+                throw new Exception("РЈ РІР°С€РµР№ СЂРѕР»Рё РЅРµС‚ РїСЂР°РІ РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ С‚РѕРІР°СЂРѕРІ РІ РєРѕСЂР·РёРЅСѓ.");
 
             var existingItem = await _cartRepository.GetCartItemAsync(_authService.RequireUser().Id, productId);
 
@@ -112,7 +128,7 @@ namespace ShopProject.Services
         public async Task DeleteCartAsync(Guid cartId)
         {
             if (await _cartRepository.GetByIdAsync(cartId) == null)
-                throw new Exception("не удалось найти корзину");
+                throw new Exception("РЅРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РєРѕСЂР·РёРЅСѓ");
             await _cartRepository.DeleteAsync(cartId);
         }
 
@@ -120,7 +136,7 @@ namespace ShopProject.Services
         {
             var existingItem = await _cartRepository.GetCartItemAsync(_authService.RequireUser().Id, productId);
             if (existingItem == null)
-                throw new Exception("такого товара нет в тележке");
+                throw new Exception("С‚Р°РєРѕРіРѕ С‚РѕРІР°СЂР° РЅРµС‚ РІ С‚РµР»РµР¶РєРµ");
 
             if (existingItem.Count > 1)
             {
@@ -137,7 +153,7 @@ namespace ShopProject.Services
         public async Task<List<Cart>> GetCartAsync(Guid userId)
         {
             if (!PermissionService.CanAdministrate(_authService.RequireUser().Role))
-                throw new Exception("У вашей роли нет прав для просмотра чужих корзин");
+                throw new Exception("РЈ РІР°С€РµР№ СЂРѕР»Рё РЅРµС‚ РїСЂР°РІ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° С‡СѓР¶РёС… РєРѕСЂР·РёРЅ");
             return await _cartRepository.GetByUserAsync(userId);
         }
 

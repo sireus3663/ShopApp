@@ -1,10 +1,10 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 using System.Linq;
 
+using ShopProject.Db;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class TopProductsCommand : BaseCommand

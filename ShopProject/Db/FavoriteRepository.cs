@@ -1,10 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
-using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace ShopProject.Db
+{
+    public interface IFavoriteRepository : IRepository<Favorite>
+    {
+        List<Favorite> GetByUser(Guid userId);
+        Favorite? GetFavoriteItem(Guid userId, Guid productId);
+        void Save();
+        Task<List<Favorite>> GetByUserAsync(Guid userId);
+        Task<Favorite?> GetFavoriteItemAsync(Guid userId, Guid productId);
+        Task SaveAsync();
+        Task<int> SaveChangesAsync();
+    }
+}
 
 namespace ShopProject.Db
 {

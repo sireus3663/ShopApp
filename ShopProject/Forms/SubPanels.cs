@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -7,7 +7,6 @@ using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Models;
 using ShopProject.Services;
-using ShopProject.Services.Interfaces;
 
 namespace ShopProject.Forms
 {
@@ -1437,21 +1436,20 @@ namespace ShopProject.Forms
         private readonly AppDbContext _context;
         private readonly ProductService _productService;
         private readonly OrderService _orderService;
-        private readonly IRefundService _refundService;
         private Label lblTitle = null!;
         private Label lblEmpty = null!;
         private FlowLayoutPanel flowOrders = null!;
 
         public Action<Product>? ProductClicked { get; set; }
+        public Action<Order>? OrderProductClicked { get; set; }
 
         public OrdersPanel(AuthService authService, AppDbContext context,
-            ProductService productService, OrderService orderService, IRefundService refundService)
+            ProductService productService, OrderService orderService)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
             _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
-            _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
             InitializeComponents();
         }
 
@@ -1512,9 +1510,8 @@ namespace ShopProject.Forms
             try
             {
                 var orders = _orderService.GetUserOrders(user.Id);
-                var refunds = _refundService.GetUserRequests(user.Id);
 
-                if (!orders.Any() && !refunds.Any()) { lblEmpty.Visible = true; return; }
+                if (!orders.Any()) { lblEmpty.Visible = true; return; }
                 lblEmpty.Visible = false;
 
                 foreach (var order in orders)
@@ -1522,26 +1519,7 @@ namespace ShopProject.Forms
                     var product = _context.products.Find(order.ProductId);
                     if (product == null) continue;
                     order.Product = product;
-                    var existingRefund = refunds.FirstOrDefault(r => r.OrderId == order.Id);
-                    flowOrders.Controls.Add(MakeOrderCard(order, product, user.Id, existingRefund));
-                }
-
-                if (refunds.Any())
-                {
-                    flowOrders.Controls.Add(new Label
-                    {
-                        Text = "↩ Запросы на возврат",
-                        Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                        ForeColor = StyleHelper.TextPrimary,
-                        AutoSize = true,
-                        Margin = new Padding(0, 16, 0, 4)
-                    });
-
-                    foreach (var req in refunds)
-                    {
-                        var product = _context.products.Find(req.ProductId);
-                        flowOrders.Controls.Add(MakeRefundCard(req, product));
-                    }
+                    flowOrders.Controls.Add(MakeOrderCard(order, product, user.Id));
                 }
             }
             catch (Exception ex)
@@ -1551,380 +1529,188 @@ namespace ShopProject.Forms
             }
         }
 
-    private Panel MakeOrderCard(Order order, Product product, Guid userId, RefundRequest? existingRefund)
+    private Panel MakeOrderCard(Order order, Product product, Guid userId)
     {
-        var card = StyleHelper.RoundedCard(300, 100);
-        card.Margin = new Padding(0, 0, 0, 8);
+        var card = new Panel
+        {
+            Height = 150,
+            Margin = new Padding(0, 0, 0, 8)
+        };
+        card.ParentChanged += (s, e) =>
+        {
+            if (card.Parent is FlowLayoutPanel flp && flp.ClientSize.Width > 0)
+                card.Width = flp.ClientSize.Width;
+        };
 
-        var pb = StyleHelper.ProductImageBox(product.ProductImage, 72, 72);
+        card.Paint += (s, e) =>
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var rect = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
+            int r = 10;
+            for (int i = 0; i < 3; i++)
+            {
+                using var shPath = StyleHelper.GetRoundedPath(
+                    new Rectangle(rect.X + i + 1, rect.Y + i + 3, rect.Width - i * 2, rect.Height - i * 2), r - i);
+                using var shBrush = new SolidBrush(Color.FromArgb(8 + i * 2, 0, 0, 0));
+                e.Graphics.FillPath(shBrush, shPath);
+            }
+            using var bodyPath = StyleHelper.GetRoundedPath(rect, r);
+            using var bodyBrush = new SolidBrush(Color.White);
+            e.Graphics.FillPath(bodyBrush, bodyPath);
+            using var borderPen = new Pen(StyleHelper.Border, 1);
+            e.Graphics.DrawPath(borderPen, bodyPath);
+            using var accentPath = StyleHelper.GetRoundedPath(new Rectangle(5, 12, 4, card.Height - 24), 2);
+            using var accentBrush = new SolidBrush(StyleHelper.Accent);
+            e.Graphics.FillPath(accentBrush, accentPath);
+        };
+
+        var pb = StyleHelper.ProductImageBox(product.ProductImage, 120, 120);
         pb.Location = new Point(14, 14);
         pb.Cursor = Cursors.Hand;
         StyleHelper.SetRoundedRegion(pb, 8);
-        pb.Click += (s, e) => ProductClicked?.Invoke(product);
+        pb.Click += (s, e) => OrderProductClicked?.Invoke(order);
+
+        int leftX = 148;
 
         var lblName = new Label
         {
             Text = product.Name ?? "Без названия",
-            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            Font = new Font("Segoe UI", 12, FontStyle.Bold),
             ForeColor = StyleHelper.TextPrimary,
-            Location = new Point(100, 14),
+            Location = new Point(leftX, 14),
             AutoSize = true,
             Cursor = Cursors.Hand
         };
-        lblName.Click += (s, e) => ProductClicked?.Invoke(product);
+        lblName.Click += (s, e) => OrderProductClicked?.Invoke(order);
 
+        var unitPrice = order.Price / order.Count;
         var lblMeta = new Label
         {
-            Text = $"{order.Count} шт. × {order.Price / order.Count:N0} ₽ = {order.Price:N0} ₽",
+            Text = $"{order.Count} шт. × {unitPrice:N0} ₽",
+            Font = new Font("Segoe UI", 10),
+            ForeColor = StyleHelper.TextMuted,
+            Location = new Point(leftX, 40),
+            AutoSize = true
+        };
+
+        var lblTotal = new Label
+        {
+            Text = $"= {order.Price:N0} ₽",
+            Font = new Font("Segoe UI", 16, FontStyle.Bold),
+            ForeColor = StyleHelper.Accent,
+            Location = new Point(leftX, 58),
+            AutoSize = true
+        };
+
+        var lblCategory = new Label
+        {
+            Text = $"📂 {product.Category ?? "Без категории"}",
             Font = new Font("Segoe UI", 9),
             ForeColor = StyleHelper.TextMuted,
-            Location = new Point(100, 40),
+            Location = new Point(leftX, 86),
             AutoSize = true
         };
 
         var lblDate = new Label
         {
-            Text = order.CreatedAt.ToString("dd.MM.yyyy"),
+            Text = order.CreatedAt.ToString("dd MMMM yyyy, HH:mm"),
             Font = new Font("Segoe UI", 9),
             ForeColor = StyleHelper.TextMuted,
-            Location = new Point(100, 58),
+            Location = new Point(leftX, 104),
             AutoSize = true
         };
 
-        card.Controls.AddRange(new Control[] { pb, lblName, lblMeta, lblDate });
-
-        if (existingRefund != null)
+        var shortId = order.Id.ToString()[..8];
+        var lblOrderIdSmall = new Label
         {
-            var lblRefundStatus = new Label
-            {
-                Text = existingRefund.Status switch
-                {
-                    RefundStatus.Pending => "⏳ Возврат ожидает",
-                    RefundStatus.Approved => "✅ Возврат одобрен",
-                    RefundStatus.Declined => "❌ Возврат отклонён",
-                    _ => existingRefund.Status.ToString()
-                },
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = existingRefund.Status switch
-                {
-                    RefundStatus.Pending => Color.FromArgb(194, 65, 12),
-                    RefundStatus.Approved => StyleHelper.Success,
-                    RefundStatus.Declined => StyleHelper.Danger,
-                    _ => StyleHelper.TextMuted
-                },
-                AutoSize = true
-            };
-            card.Controls.Add(lblRefundStatus);
+            Text = $"№{shortId}",
+            Font = new Font("Segoe UI", 8, FontStyle.Bold),
+            ForeColor = Color.FromArgb(148, 163, 184),
+            Location = new Point(leftX, 122),
+            AutoSize = true
+        };
 
-            card.Resize += (s, e) =>
-            {
-                lblRefundStatus.Location = new Point(card.Width - 170, 38);
-            };
-            lblRefundStatus.Location = new Point(card.Width - 170, 38);
-        }
-        else
+        Button btnCart = null!;
+        Button btnFav = null!;
+
+        btnCart = StyleHelper.ModernBtn("🛒 В корзину", 0, 0, 130, 36, StyleHelper.Accent, Color.White);
+        btnCart.Location = new Point(card.Width - 150, 14);
+
+        btnCart.Click += (s, e) =>
         {
-            var btnRefund = new Button
-            {
-                Text = "↩ Возврат",
-                Size = new Size(100, 34),
-                Font = new Font("Segoe UI", 9),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(255, 237, 213),
-                ForeColor = Color.FromArgb(194, 65, 12),
-                Cursor = Cursors.Hand
-            };
-            btnRefund.FlatAppearance.BorderSize = 0;
-            btnRefund.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using var path = StyleHelper.GetRoundedPath(btnRefund.ClientRectangle, 8);
-                using var brush = new SolidBrush(btnRefund.BackColor);
-                e.Graphics.FillPath(brush, path);
-                TextRenderer.DrawText(e.Graphics, btnRefund.Text, btnRefund.Font,
-                    btnRefund.ClientRectangle, btnRefund.ForeColor,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            };
-            btnRefund.MouseEnter += (s, e) =>
-            {
-                btnRefund.BackColor = Color.FromArgb(254, 215, 170);
-                btnRefund.Invalidate();
-            };
-            btnRefund.MouseLeave += (s, e) =>
-            {
-                btnRefund.BackColor = Color.FromArgb(255, 237, 213);
-                btnRefund.Invalidate();
-            };
-            btnRefund.Click += (s, e) => RequestRefund(order, product);
+            var cartRepo = new CartRepository(_context);
+            var existing = cartRepo.GetCartItem(userId, product.Id);
+            if (existing != null) existing.Count++;
+            else cartRepo.Add(new Cart { Id = Guid.NewGuid(), UserId = userId, ProductId = product.Id, Count = 1 });
+            cartRepo.Save();
+            MessageBox.Show($"«{product.Name}» добавлен в корзину!", "Корзина",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        };
 
-            card.Controls.Add(btnRefund);
-
-            card.Resize += (s, e) =>
+        var favRepo = new FavoriteRepository(_context);
+        var isFav = favRepo.GetFavoriteItem(userId, product.Id) != null;
+        btnFav = new Button
+        {
+            Text = isFav ? "★" : "☆",
+            Size = new Size(130, 36),
+            Font = new Font("Segoe UI", 14),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = isFav ? Color.FromArgb(234, 179, 8) : Color.FromArgb(156, 163, 175),
+            Cursor = Cursors.Hand
+        };
+        btnFav.FlatAppearance.BorderSize = 0;
+        btnFav.Paint += (s, e) =>
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var b = (Button)s!;
+            using var path = StyleHelper.GetRoundedPath(b.ClientRectangle, 8);
+            e.Graphics.FillPath(new SolidBrush(b.BackColor), path);
+            using var pen = new Pen(StyleHelper.Border, 1);
+            e.Graphics.DrawPath(pen, path);
+            TextRenderer.DrawText(e.Graphics, b.Text, b.Font,
+                b.ClientRectangle, b.ForeColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        };
+        btnFav.MouseEnter += (s, e) => { btnFav.BackColor = Color.FromArgb(248, 250, 252); btnFav.Invalidate(); };
+        btnFav.MouseLeave += (s, e) => { btnFav.BackColor = Color.White; btnFav.Invalidate(); };
+        btnFav.Click += (s, e) =>
+        {
+            var item = favRepo.GetFavoriteItem(userId, product.Id);
+            if (item != null)
             {
-                btnRefund.Location = new Point(card.Width - 124, 33);
-            };
-            btnRefund.Location = new Point(card.Width - 124, 33);
-        }
+                favRepo.Delete(item.Id);
+                favRepo.Save();
+                isFav = false;
+                btnFav.Text = "☆";
+                btnFav.ForeColor = Color.FromArgb(156, 163, 175);
+            }
+            else
+            {
+                favRepo.Add(new Favorite { Id = Guid.NewGuid(), UserId = userId, ProductId = product.Id });
+                favRepo.Save();
+                isFav = true;
+                btnFav.Text = "★";
+                btnFav.ForeColor = Color.FromArgb(234, 179, 8);
+            }
+            btnFav.Invalidate();
+        };
+
+        card.Controls.AddRange(new Control[] { pb, lblName, lblMeta, lblTotal, lblCategory, lblDate, lblOrderIdSmall, btnCart, btnFav });
+
+        card.Resize += (s, e) =>
+        {
+            btnCart.Location = new Point(card.Width - 150, 14);
+            btnFav.Location = new Point(card.Width - 150, 56);
+            btnCart.BringToFront();
+            btnFav.BringToFront();
+        };
 
         return card;
     }
-
-        private void RequestRefund(Order order, Product product)
-        {
-            var countStr = Microsoft.VisualBasic.Interaction.InputBox(
-                "Введите количество товара для возврата:",
-                "Оформление возврата",
-                order.Count.ToString());
-
-            if (string.IsNullOrWhiteSpace(countStr)) return;
-            if (!int.TryParse(countStr, out int count) || count <= 0 || count > order.Count)
-            {
-                MessageBox.Show($"Некорректное количество. Можно вернуть от 1 до {order.Count} шт.",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var reason = Microsoft.VisualBasic.Interaction.InputBox(
-                "Укажите причину возврата:",
-                "Причина возврата",
-                "");
-
-            if (string.IsNullOrWhiteSpace(reason))
-            {
-                MessageBox.Show("Укажите причину возврата", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                _refundService.CreateRequest(order.Id, count, reason);
-                MessageBox.Show($"Запрос на возврат «{product.Name}» ({count} шт.) отправлен!",
-                    "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private Panel MakeRefundCard(RefundRequest req, Product? product)
-        {
-            var card = StyleHelper.RoundedCard(300, 90);
-            card.Margin = new Padding(0, 0, 0, 8);
-            int x = 20;
-            int y = 14;
-            var lblProduct = new Label
-            {
-                Text = product?.Name ?? "Товар удалён",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                ForeColor = StyleHelper.TextPrimary,
-                Location = new Point(x, y),
-                AutoSize = true
-            };
-            var lblMeta = new Label
-            {
-                Text = $"{req.Count} шт. — {req.CreatedAt:dd.MM.yyyy}",
-                Font = new Font("Segoe UI", 9),
-                ForeColor = StyleHelper.TextMuted,
-                Location = new Point(x, y + 24),
-                AutoSize = true
-            };
-            var lblStatus = new Label
-            {
-                Text = req.Status switch
-                {
-                    RefundStatus.Pending => "⏳ На рассмотрении",
-                    RefundStatus.Approved => "✅ Одобрен",
-                    RefundStatus.Declined => "❌ Отклонён",
-                    _ => req.Status.ToString()
-                },
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                ForeColor = req.Status switch
-                {
-                    RefundStatus.Pending => Color.FromArgb(194, 65, 12),
-                    RefundStatus.Approved => StyleHelper.Success,
-                    RefundStatus.Declined => StyleHelper.Danger,
-                    _ => StyleHelper.TextMuted
-                },
-                Location = new Point(x, y + 48),
-                AutoSize = true
-            };
-            card.Controls.AddRange(new Control[] { lblProduct, lblMeta, lblStatus });
-            if (!string.IsNullOrEmpty(req.ReviewComment))
-            {
-                var lblComment = new Label
-                {
-                    Text = $"Комментарий: {req.ReviewComment}",
-                    Font = new Font("Segoe UI", 9, FontStyle.Italic),
-                    ForeColor = StyleHelper.TextMuted,
-                    Location = new Point(x, y + 68),
-                    AutoSize = true
-                };
-                card.Controls.Add(lblComment);
-                card.Height = 110;
-            }
-            return card;
-        }
     }
 
-    public class RefundsPanel : Panel, IRefreshable
-    {
-        private readonly AuthService _authService;
-        private readonly AppDbContext _context;
-        private readonly IRefundService _refundService;
-        private Label lblTitle = null!;
-        private Label lblEmpty = null!;
-        private FlowLayoutPanel flowRefunds = null!;
 
-        public RefundsPanel(AuthService authService, AppDbContext context, IRefundService refundService)
-        {
-            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
-            _context = context ?? throw new ArgumentNullException(nameof(context));
-            _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
-            InitializeComponents();
-        }
-
-        private void InitializeComponents()
-        {
-            BackColor = StyleHelper.BgPage;
-
-            lblTitle = StyleHelper.CardTitle("↩ Мои возвраты", 24, 0);
-
-            flowRefunds = new FlowLayoutPanel
-            {
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                AutoScroll = true,
-                BackColor = StyleHelper.BgPage
-            };
-            flowRefunds.HandleCreated += (s, e) =>
-            {
-                flowRefunds.HorizontalScroll.Enabled = false;
-                flowRefunds.HorizontalScroll.Visible = false;
-            };
-            flowRefunds.Layout += (s, e) =>
-            {
-                int cw = Math.Max(flowRefunds.ClientSize.Width, flowRefunds.Width - SystemInformation.VerticalScrollBarWidth);
-                if (cw <= 0) return;
-                foreach (Control c in flowRefunds.Controls)
-                    if (c is Panel p) p.Width = cw;
-            };
-
-            lblEmpty = new Label
-            {
-                Text = "↩  У вас нет запросов на возврат",
-                Font = new Font("Segoe UI", 14),
-                ForeColor = StyleHelper.TextMuted,
-                AutoSize = true,
-                Visible = false
-            };
-
-            Controls.AddRange(new Control[] { lblTitle, flowRefunds, lblEmpty });
-        }
-
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-            const int margin = 24;
-            flowRefunds.Location = new Point(margin, 55);
-            flowRefunds.Size = new Size(Width - margin * 2, Height - 75);
-            if (lblEmpty != null)
-                lblEmpty.Location = new Point(margin, Math.Max(80, Height / 2 - 20));
-        }
-
-        public new void Refresh()
-        {
-            flowRefunds.Controls.Clear();
-            var user = _authService.CurrentUser;
-            if (user == null) { lblEmpty.Visible = true; return; }
-
-            try
-            {
-                var requests = _refundService.GetUserRequests(user.Id);
-                if (!requests.Any()) { lblEmpty.Visible = true; return; }
-                lblEmpty.Visible = false;
-
-                foreach (var req in requests)
-                {
-                    var product = _context.products.Find(req.ProductId);
-                    flowRefunds.Controls.Add(MakeRefundCard(req, product));
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка загрузки возвратов: {ex.Message}", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private Panel MakeRefundCard(RefundRequest req, Product? product)
-        {
-            var card = StyleHelper.RoundedCard(300, 90);
-            card.Margin = new Padding(0, 0, 0, 8);
-
-            int x = 20;
-            int y = 14;
-
-            var lblProduct = new Label
-            {
-                Text = product?.Name ?? "Товар удалён",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                ForeColor = StyleHelper.TextPrimary,
-                Location = new Point(x, y),
-                AutoSize = true
-            };
-
-            var lblMeta = new Label
-            {
-                Text = $"{req.Count} шт. — {req.CreatedAt:dd.MM.yyyy}",
-                Font = new Font("Segoe UI", 9),
-                ForeColor = StyleHelper.TextMuted,
-                Location = new Point(x, y + 24),
-                AutoSize = true
-            };
-
-            var lblStatus = new Label
-            {
-                Text = req.Status switch
-                {
-                    RefundStatus.Pending => "⏳ На рассмотрении",
-                    RefundStatus.Approved => "✅ Одобрен",
-                    RefundStatus.Declined => "❌ Отклонён",
-                    _ => req.Status.ToString()
-                },
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                ForeColor = req.Status switch
-                {
-                    RefundStatus.Pending => Color.FromArgb(194, 65, 12),
-                    RefundStatus.Approved => StyleHelper.Success,
-                    RefundStatus.Declined => StyleHelper.Danger,
-                    _ => StyleHelper.TextMuted
-                },
-                Location = new Point(x, y + 48),
-                AutoSize = true
-            };
-
-            card.Controls.AddRange(new Control[] { lblProduct, lblMeta, lblStatus });
-
-            if (!string.IsNullOrEmpty(req.ReviewComment))
-            {
-                var lblComment = new Label
-                {
-                    Text = $"Комментарий: {req.ReviewComment}",
-                    Font = new Font("Segoe UI", 9, FontStyle.Italic),
-                    ForeColor = StyleHelper.TextMuted,
-                    Location = new Point(x, y + 68),
-                    AutoSize = true
-                };
-                card.Controls.Add(lblComment);
-                card.Height = 110;
-            }
-
-            return card;
-        }
-    }
 
     public class CreateProductPanel : Panel, IRefreshable
     {

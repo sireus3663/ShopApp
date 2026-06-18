@@ -1,9 +1,9 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 
+using ShopProject.Db;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.UserServiceCommand
 {
     public class UsersCommand : BaseCommand

@@ -1,9 +1,9 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
-
+using System.Globalization;
+using ShopProject.Db;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class EditProductCommand : BaseCommand
@@ -84,7 +84,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
                 switch (field)
                 {
                     case "price":
-                        if (!decimal.TryParse(newValue, out var price) || price <= 0)
+                        if (!decimal.TryParse(newValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) || price <= 0)
                         {
                             Error("Цена должна быть положительным числом");
                             return;

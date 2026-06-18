@@ -1,6 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using ShopProject.Db;
 using ShopProject.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace ShopProject.Services;
 public class StartupService
@@ -32,9 +32,8 @@ public class StartupService
 
             return context;
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.Error("Ошибка подключения к базе данных", ex);
             return null;
         }
     }
@@ -84,28 +83,41 @@ public class StartupService
         }
     }
 
-    public void RestoreSession(AppDbContext context, AuthService authService)
+    public void InitializeOnFirstLaunch(AppDbContext context)
     {
-        var userId = _configService.GetCurrentUserId();
-        if (userId == null) return;
+        if (!IsFirstLaunch()) return;
+        _logger.Info("Первый запуск приложения — создание тестовых пользователей");
+        SeedTestUsers(context);
+    }
 
-        try
+    private void SeedTestUsers(AppDbContext context)
+    {
+        var userRepo = new UserRepository(context);
+        var users = new[]
         {
-            var user = context.users.FirstOrDefault(u => u.Id == userId.Value);
-            if (user == null)
+            new { Email = "admin@shop.com", Password = "Admin123", Name = "Administrator", Balance = 999999M, Role = Role.Admin },
+            new { Email = "moder@shop.com", Password = "Moder123", Name = "Moderator", Balance = 10000M, Role = Role.Moderator },
+            new { Email = "seller@shop.com", Password = "Seller123", Name = "Seller", Balance = 50000M, Role = Role.Seller },
+            new { Email = "buyer@shop.com", Password = "Buyer123", Name = "Buyer", Balance = 10000M, Role = Role.Buyer },
+        };
+
+        foreach (var u in users)
+        {
+            if (!userRepo.Exists(u.Email))
             {
-                _configService.SetCurrentUserId(null);
-                return;
+                var user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Name = u.Name,
+                    Email = u.Email,
+                    Balance = u.Balance,
+                    Role = u.Role,
+                    IsBlocked = false
+                };
+                user.SetPassword(u.Password);
+                userRepo.Add(user);
+                _logger.Info($"Создан тестовый пользователь: {u.Email}");
             }
-
-            authService.LoginById(user);
-            PrintSuccess($"Сессия восстановлена: {user.Name} ({user.Role})");
-            _logger.Info($"Сессия восстановлена для пользователя {user.Email} (Id={user.Id})");
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("Ошибка при восстановлении сессии", ex);
-            _configService.SetCurrentUserId(null);
         }
     }
 

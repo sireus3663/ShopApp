@@ -11,8 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Discount> discounts { get; set; }
     public DbSet<Cart> carts { get; set; }
     public DbSet<Favorite> favorites { get; set; }
-    public DbSet<RefundRequest> refund_requests { get; set; }
-
+    public DbSet<Session> sessions { get; set; }
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
@@ -88,35 +87,6 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<RefundRequest>(entity =>
-        {
-            entity.ToTable("refund_requests");
-            entity.HasKey(r => r.Id);
-            entity.Property(r => r.UserId).IsRequired();
-            entity.Property(r => r.ProductId).IsRequired();
-            entity.Property(r => r.OrderId).IsRequired();
-            entity.Property(r => r.Count).IsRequired();
-            entity.Property(r => r.Reason).IsRequired().HasMaxLength(500);
-            entity.Property(r => r.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
-            entity.Property(r => r.CreatedAt).IsRequired();
-            entity.Property(r => r.ReviewComment).HasMaxLength(500);
-
-            entity.HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(r => r.Product)
-                .WithMany()
-                .HasForeignKey(r => r.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(r => r.Order)
-                .WithMany()
-                .HasForeignKey(r => r.OrderId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
         modelBuilder.Entity<Discount>(entity =>
         {
             entity.HasKey(d => d.Id);
@@ -127,6 +97,23 @@ public class AppDbContext : DbContext
                 .WithOne()
                 .HasForeignKey<Discount>(d => d.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Session>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.UserId).IsRequired();
+            entity.Property(s => s.Token).IsRequired();
+            entity.Property(s => s.CreatedAt).IsRequired();
+            entity.Property(s => s.ExpiresAt).IsRequired();
+            entity.Property(s => s.IsActive).IsRequired();
+
+            entity.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(s => s.Token);
         });
     }
 }

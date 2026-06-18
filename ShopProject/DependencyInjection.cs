@@ -1,13 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ShopProject.ConsoleCommands;
 using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
-using ShopProject.Db.Interfaces;
 using ShopProject.Forms;
 using ShopProject.Forms.ViewModels;
 using ShopProject.Services;
-using ShopProject.Services.Interfaces;
 
 
 namespace ShopProject
@@ -46,8 +44,6 @@ namespace ShopProject
                 services.AddScoped<IOrderRepository, OrderRepository>();
                 services.AddScoped<IFavoriteRepository, FavoriteRepository>();
                 services.AddScoped<IDiscountRepository, DiscountRepository>();
-                services.AddScoped<IRefundRequestRepository, RefundRequestRepository>();
-
                 // Сервисы
                 services.AddScoped<IAuthService, AuthService>();
                 services.AddScoped<IUserService, UserService>();
@@ -58,8 +54,6 @@ namespace ShopProject
                 services.AddScoped<IDiscountService, DiscountService>();
                 services.AddScoped<IModeratorService, ModeratorService>();
                 services.AddScoped<IStatisticService, StatisticService>();
-                services.AddScoped<IRefundService, RefundService>();
-
                 // ViewModels
                 services.AddScoped<MainViewModel>();
                 services.AddScoped<AdminViewModel>();

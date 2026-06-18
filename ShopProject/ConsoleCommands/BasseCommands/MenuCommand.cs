@@ -1,8 +1,8 @@
-﻿using ShopProject.Services.Interfaces;
 using ShopProject.Models;
 using System;
 using System.Linq;
 
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.BasseCommands
 {
     public class MenuCommand : BaseCommand
@@ -22,7 +22,7 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 
         public override void Execute(string[] args)
         {
-            Console.Clear();
+            SafeClear();
 
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine(new string('=', 60));

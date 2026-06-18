@@ -5,7 +5,6 @@ using System.Linq;
 using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Services;
-using ShopProject.Services.Interfaces;
 using ShopProject.Models;
 
 namespace ShopProject.Forms
@@ -17,7 +16,6 @@ namespace ShopProject.Forms
         private readonly AppDbContext _context;
         private readonly ProductService _productService;
         private readonly OrderService _orderService;
-        private readonly IRefundService _refundService;
         private Panel pnlNav = null!;
         private Button btnCart = null!;
         private Button btnFavorites = null!;
@@ -41,16 +39,16 @@ namespace ShopProject.Forms
 
         public Action<Product>? ProductClicked { get; set; }
         public Action<Product, ProductService>? ProductClickedForModeration { get; set; }
+        public Action<Order>? OrderClicked { get; set; }
 
         public ProfileForm(AuthService authService, UserService userService, AppDbContext context,
-            ProductService productService, OrderService orderService, IRefundService refundService)
+            ProductService productService, OrderService orderService)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
             _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
-            _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
             InitializeComponents();
             ShowPanel(profilePanel);
         }
@@ -207,7 +205,7 @@ namespace ShopProject.Forms
             btnCart = NavButton("🛒 Корзина", y); y += 45;
             btnFavorites = NavButton("❤ Избранное", y); y += 45;
             btnProfile = NavButton("👤 Профиль", y); y += 45;
-            btnOrders = NavButton("📦 Заказы и возвраты", y); y += 45;
+            btnOrders = NavButton("📦 Заказы", y); y += 45;
 
             btnCart.Click += (s, e) => ShowPanel(cartPanel);
             btnFavorites.Click += (s, e) => ShowPanel(favoritesPanel);
@@ -239,7 +237,6 @@ namespace ShopProject.Forms
                 {
                     AddRoleNavButton(pnlNavScroll, "👥 Управление пользователями", y, OpenAdminPanel); y += 45;
                     AddRoleNavButton(pnlNavScroll, "📝 Модерация товаров", y, OpenModeration); y += 45;
-                    AddRoleNavButton(pnlNavScroll, "↩ Возвраты", y, OpenRefundModeration); y += 45;
                     AddRoleNavButton(pnlNavScroll, "📊 Статистика", y, OpenStatistics); y += 45;
                     AddRoleNavButton(pnlNavScroll, "🖥 Консоль", y, OpenConsole); y += 45;
                     AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm);
@@ -247,7 +244,6 @@ namespace ShopProject.Forms
                 else if (role == Role.Moderator)
                 {
                     AddRoleNavButton(pnlNavScroll, "📝 Модерация", y, OpenModeration); y += 45;
-                    AddRoleNavButton(pnlNavScroll, "↩ Возвраты", y, OpenRefundModeration); y += 45;
                     AddRoleNavButton(pnlNavScroll, "📋 Список жалоб", y, OpenComplaints);
                 }
                 else if (role == Role.Seller)
@@ -343,8 +339,9 @@ namespace ShopProject.Forms
             favoritesPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
             profilePanel = new ProfilePanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
             statisticPanel = new StatisticPanel(_context, _authService) { Dock = DockStyle.Fill, Visible = false };
-            ordersPanel = new OrdersPanel(_authService, _context, _productService, _orderService, _refundService) { Dock = DockStyle.Fill, Visible = false };
+            ordersPanel = new OrdersPanel(_authService, _context, _productService, _orderService) { Dock = DockStyle.Fill, Visible = false };
             ordersPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
+            ordersPanel.OrderProductClicked = (order) => OrderClicked?.Invoke(order);
             createProductPanel = new CreateProductPanel(_authService, _productService, _context) { Dock = DockStyle.Fill, Visible = false };
 
             pnlContent.Controls.AddRange(new Control[]
@@ -446,12 +443,6 @@ namespace ShopProject.Forms
             ShowInnerForm(form);
         }
 
-        private void OpenRefundModeration()
-        {
-            var form = new RefundModerationForm(_refundService, _authService, _context);
-            ShowInnerForm(form);
-        }
-
         private void OpenStatistics()
         {
             ShowPanel(statisticPanel);
@@ -523,6 +514,15 @@ namespace ShopProject.Forms
                     mf.LoadProducts();
                     break;
                 }
+            }
+        }
+
+        public void RefreshOrdersPanel()
+        {
+            if (ordersPanel != null)
+            {
+                ordersPanel.Visible = true;
+                ordersPanel.Refresh();
             }
         }
 

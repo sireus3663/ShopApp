@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ShopProject.Db;
 using ShopProject.Forms.ViewModels;
 using ShopProject.Models;
@@ -159,7 +159,7 @@ namespace ShopProject.Forms
         {
             var configService = new AppConfigService();
             var userRepo = new UserRepository(_context);
-            _authService = new AuthService(userRepo, configService);
+            _authService = new AuthService(userRepo, _context, configService);
             _productRepo = new ProductRepository(_context);
             var cartRepo = new CartRepository(_context);
             _cartService = new CartService(cartRepo, _authService);
@@ -922,13 +922,12 @@ namespace ShopProject.Forms
             var orderRepo = new OrderRepository(_context);
             var productRepo = new ProductRepository(_context);
             var userRepo = new UserRepository(_context);
-            var refundRepo = new RefundRequestRepository(_context);
             var orderService = new OrderService(_authService, _cartService, orderRepo, productRepo, userRepo, _discountService, _context);
-            var refundService = new RefundService(refundRepo, orderRepo, userRepo, _authService, _context);
-            var profileForm = new ProfileForm(_authService, _userService, _context, _productService, orderService, refundService);
+            var profileForm = new ProfileForm(_authService, _userService, _context, _productService, orderService);
             profileForm.Owner = this;
             profileForm.ProductClicked = (product) => OpenProductDetail(product);
             profileForm.ProductClickedForModeration = (product, ps) => OpenProductDetail(product, ps);
+            profileForm.OrderClicked = null;
             ShowEmbeddedForm(profileForm);
             profileForm.RefreshData();
         }

@@ -1,8 +1,8 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands
 {
     public class BuyCartCommand : BaseCommand

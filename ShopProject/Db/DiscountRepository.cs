@@ -1,8 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
-using ShopProject.Db.Interfaces;
 using System;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+
+namespace ShopProject.Db
+{
+    public interface IDiscountRepository : IRepository<Discount>
+    {
+        Discount? GetByProduct(Guid productId);
+        Task<Discount?> GetByProductAsync(Guid productId);
+    }
+}
 
 namespace ShopProject.Db
 {

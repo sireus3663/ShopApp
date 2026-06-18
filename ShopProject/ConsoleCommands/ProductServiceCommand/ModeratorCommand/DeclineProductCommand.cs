@@ -1,7 +1,6 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
 using ShopProject.Services;
-using ShopProject.Services.Interfaces;
 using System;
 
 namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand

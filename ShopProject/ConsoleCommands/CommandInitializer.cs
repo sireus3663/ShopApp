@@ -1,4 +1,4 @@
-﻿using ShopProject.ConsoleCommands.AuthServiceCommand;
+using ShopProject.ConsoleCommands.AuthServiceCommand;
 using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.ConsoleCommands.CartServiceCommand;
 using ShopProject.ConsoleCommands.FavoriteServiceCommand;
@@ -8,9 +8,8 @@ using ShopProject.ConsoleCommands.ProductServiceCommand;
 using ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand;
 using ShopProject.ConsoleCommands.UserServiceCommand;
 using ShopProject.Db;
-using ShopProject.Db.Interfaces;
-using ShopProject.Services.Interfaces;
 
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands
 {
     public static class CommandInitializer
@@ -76,7 +75,6 @@ namespace ShopProject.ConsoleCommands
 
             // Order
             registry.Register(new GetUserOrdersCommand(orderService, authService));
-            registry.Register(new ReturnOrderCommand(orderService, authService, orderRepo, userRepo));
             registry.Register(new ViewOrdersCommand(orderService, authService));
 
             // Moderator

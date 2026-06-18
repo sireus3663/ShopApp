@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -307,6 +307,7 @@ namespace ShopProject.Forms
             rightPanel.Controls.Add(lblDescription);
 
             y += 120;
+
             btnAddToCart.Location = new Point(0, y);
             rightPanel.Controls.Add(btnAddToCart);
 
@@ -368,6 +369,7 @@ namespace ShopProject.Forms
 
         private void UpdateFavoriteState()
         {
+            if (_favoriteService == null) return;
             var user = _authService.CurrentUser;
             if (user != null)
             {
@@ -442,5 +444,6 @@ namespace ShopProject.Forms
                 MessageBox.Show(ex.Message, "Ошибка");
             }
         }
+
     }
 }

@@ -1,12 +1,22 @@
-﻿using ShopProject.Db;
-using ShopProject.Db.Interfaces;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using ShopProject.Db;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace ShopProject.Services
+{
+    public interface IOrderService
+    {
+        void BuyCart();
+        List<Order> GetUserOrders(Guid userId);
+
+        Task BuyCartAsync();
+        Task<List<Order>> GetUserOrdersAsync(Guid userId);
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -43,11 +53,11 @@ namespace ShopProject.Services
             var currentUser = _authService.RequireUser();
 
             if (!PermissionService.CanBuy(currentUser.Role))
-                throw new Exception("У пользователя недостаточно прав для покупки товара");
+                throw new Exception("РЈ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РїРѕРєСѓРїРєРё С‚РѕРІР°СЂР°");
 
             var cart = _cartService.GetCurrentUserCart();
             if (!cart.Any())
-                throw new Exception("Корзина пуста");
+                throw new Exception("РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°");
 
             using var transaction = _context.Database.BeginTransaction();
 
@@ -64,7 +74,7 @@ namespace ShopProject.Services
                 }
 
                 if (currentUser.Balance < totalPrice)
-                    throw new Exception("У пользователя недостаточно денег");
+                    throw new Exception("РЈ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґРµРЅРµРі");
 
                 currentUser.Balance -= totalPrice;
                 _userRepository.Update(currentUser);
@@ -74,7 +84,7 @@ namespace ShopProject.Services
                     var product = _productRepository.GetById(productInCart.ProductId);
 
                     if (product == null)
-                        throw new Exception($"Товар не найден: {productInCart.ProductId}");
+                        throw new Exception($"РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ: {productInCart.ProductId}");
 
                     _productRepository.Update(product);
 
@@ -93,12 +103,12 @@ namespace ShopProject.Services
                 }
 
                 transaction.Commit();
-                Console.WriteLine($"[OK] Покупка оформлена на сумму {totalPrice} руб.");
+                Console.WriteLine($"[OK] РџРѕРєСѓРїРєР° РѕС„РѕСЂРјР»РµРЅР° РЅР° СЃСѓРјРјСѓ {totalPrice} СЂСѓР±.");
             }
             catch (Exception ex)
             {
                 transaction.Rollback();
-                throw new Exception($"Ошибка при оформлении покупки: {ex.Message}");
+                throw new Exception($"РћС€РёР±РєР° РїСЂРё РѕС„РѕСЂРјР»РµРЅРёРё РїРѕРєСѓРїРєРё: {ex.Message}");
             }
         }
 
@@ -112,11 +122,11 @@ namespace ShopProject.Services
             var currentUser = _authService.RequireUser();
 
             if (!PermissionService.CanBuy(currentUser.Role))
-                throw new Exception("У пользователя недостаточно прав для покупки товара");
+                throw new Exception("РЈ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РїРѕРєСѓРїРєРё С‚РѕРІР°СЂР°");
 
             var cart = await _cartService.GetCurrentUserCartAsync();
             if (!cart.Any())
-                throw new Exception("Корзина пуста");
+                throw new Exception("РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°");
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -133,7 +143,7 @@ namespace ShopProject.Services
                 }
 
                 if (currentUser.Balance < totalPrice)
-                    throw new Exception("У пользователя недостаточно денег");
+                    throw new Exception("РЈ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґРµРЅРµРі");
 
                 currentUser.Balance -= totalPrice;
                 await _userRepository.UpdateAsync(currentUser);
@@ -143,7 +153,7 @@ namespace ShopProject.Services
                     var product = await _productRepository.GetByIdAsync(productInCart.ProductId);
 
                     if (product == null)
-                        throw new Exception($"Товар не найден: {productInCart.ProductId}");
+                        throw new Exception($"РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ: {productInCart.ProductId}");
 
                     await _productRepository.UpdateAsync(product);
 
@@ -162,12 +172,12 @@ namespace ShopProject.Services
                 }
 
                 await transaction.CommitAsync();
-                Console.WriteLine($"[OK] Покупка оформлена на сумму {totalPrice} руб.");
+                Console.WriteLine($"[OK] РџРѕРєСѓРїРєР° РѕС„РѕСЂРјР»РµРЅР° РЅР° СЃСѓРјРјСѓ {totalPrice} СЂСѓР±.");
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception($"Ошибка при оформлении покупки: {ex.Message}");
+                throw new Exception($"РћС€РёР±РєР° РїСЂРё РѕС„РѕСЂРјР»РµРЅРёРё РїРѕРєСѓРїРєРё: {ex.Message}");
             }
         }
 

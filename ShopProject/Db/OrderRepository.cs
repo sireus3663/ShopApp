@@ -1,10 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
-using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace ShopProject.Db
+{
+    public interface IOrderRepository : IRepository<Order>
+    {
+        List<Order> GetByUser(Guid userId);
+        List<Order> GetByProduct(Guid productId);
+        Task<List<Order>> GetByUserAsync(Guid userId);
+        Task<List<Order>> GetByProductAsync(Guid productId);
+    }
+}
 
 namespace ShopProject.Db
 {

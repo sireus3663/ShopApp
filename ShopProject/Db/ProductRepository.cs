@@ -1,10 +1,30 @@
-﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
-using ShopProject.Db.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace ShopProject.Db
+{
+    public interface IProductRepository : IRepository<Product>
+    {
+        List<Product> Search(string name);
+        List<Product> GetSortedByPrice();
+        List<Product> GetByCategory(string category);
+        Task<List<Product>> SearchAsync(string name);
+        Task<List<Product>> GetSortedByPriceAsync();
+        Task<List<Product>> GetByCategoryAsync(string category);
+
+        Task<PaginatedResult<Product>> GetApprovedProductsPaginatedAsync(
+            string? searchText = null,
+            string? category = null,
+            decimal? priceFrom = null,
+            decimal? priceTo = null,
+            int page = 1,
+            int pageSize = 12);
+    }
+}
 
 namespace ShopProject.Db
 {
@@ -63,7 +83,7 @@ namespace ShopProject.Db
             if (!string.IsNullOrEmpty(searchText))
                 query = query.Where(p => p.Name.Contains(searchText));
 
-            if (!string.IsNullOrEmpty(category) && category != "Все категории")
+            if (!string.IsNullOrEmpty(category) && category != "Р’СЃРµ РєР°С‚РµРіРѕСЂРёРё")
                 query = query.Where(p => p.Category == category);
 
             if (priceFrom.HasValue)

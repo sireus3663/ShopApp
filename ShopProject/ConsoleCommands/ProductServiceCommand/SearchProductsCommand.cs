@@ -1,7 +1,7 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using System;
 
+using ShopProject.Db;
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class SearchProductsCommand : BaseCommand

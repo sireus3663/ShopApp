@@ -14,7 +14,7 @@ namespace ShopProject.ConsoleCommands.BasseCommands
 
         public override void Execute(string[] args)
         {
-            Console.Clear();
+            SafeClear();
             Success("Консоль очищена");
         }
     }

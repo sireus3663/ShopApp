@@ -1,10 +1,10 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 
+using ShopProject.Db;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.CartServiceCommand
 {
     public class ViewCartCommand : BaseCommand

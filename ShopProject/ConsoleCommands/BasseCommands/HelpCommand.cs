@@ -1,11 +1,10 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using ShopProject.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ShopProject.Services.Interfaces;
 
 namespace ShopProject.ConsoleCommands.BasseCommands
 {

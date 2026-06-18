@@ -1,9 +1,17 @@
-﻿using ShopProject.Db;
-using ShopProject.Db.Interfaces;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
+using ShopProject.Db;
 using System.Text.RegularExpressions;
+
+namespace ShopProject.Services
+{
+    public interface IUserService
+    {
+        User Register(string name, string email, string password);
+        void ChangeRole(Guid userId, Role newRole);
+        void ShowProfile();
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -23,16 +31,16 @@ namespace ShopProject.Services
         public User Register(string name, string email, string password)
         {
             if (_userRepository.Exists(email))
-                throw new Exception("Пользователь с таким email уже существует");
+                throw new Exception("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
 
             if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
-                throw new Exception("Пароль должен содержать минимум 8 символов");
+                throw new Exception("РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ");
 
             if (!Regex.IsMatch(password, @"\d"))
-                throw new Exception("Пароль должен содержать хотя бы одну цифру");
+                throw new Exception("РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ С…РѕС‚СЏ Р±С‹ РѕРґРЅСѓ С†РёС„СЂСѓ");
 
             if (string.IsNullOrWhiteSpace(name))
-                throw new Exception("Имя не может быть пустым");
+                throw new Exception("РРјСЏ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј");
 
             var newUser = new User
             {
@@ -54,11 +62,11 @@ namespace ShopProject.Services
         {
             if (!PermissionService.CanAdministrate(_authService.RequireUser().Role))
             {
-                throw new Exception("недостаточно прав");
+                throw new Exception("РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ");
             }
             var user = _userRepository.GetById(userId);
             if (user == null)
-                throw new Exception("Пользователь не найден");
+                throw new Exception("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ");
 
             user.Role = newRole;
             _userRepository.Update(user);
@@ -69,13 +77,13 @@ namespace ShopProject.Services
             var currentUser = _authService.RequireUser();
 
             Console.WriteLine(new string('=', 50));
-            Console.WriteLine($"{"Профиль пользователя",-40}");
+            Console.WriteLine($"{"РџСЂРѕС„РёР»СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ",-40}");
             Console.WriteLine(new string('=', 50));
             Console.WriteLine($"{"ID:",-15} {currentUser.Id}");
-            Console.WriteLine($"{"Имя:",-15} {currentUser.Name}");
+            Console.WriteLine($"{"РРјСЏ:",-15} {currentUser.Name}");
             Console.WriteLine($"{"Email:",-15} {currentUser.Email}");
-            Console.WriteLine($"{"Роль:",-15} {currentUser.Role}");
-            Console.WriteLine($"{"Баланс:",-15} {currentUser.Balance} руб.");
+            Console.WriteLine($"{"Р РѕР»СЊ:",-15} {currentUser.Role}");
+            Console.WriteLine($"{"Р‘Р°Р»Р°РЅСЃ:",-15} {currentUser.Balance} СЂСѓР±.");
             Console.WriteLine(new string('=', 50));
         }
     }

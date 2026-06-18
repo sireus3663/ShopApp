@@ -1,10 +1,11 @@
-﻿using System;
+using System;
+using System.Text;
 using System.Windows.Forms;
 using ShopProject.Forms;
-using ShopProject.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection; 
 
 
+using ShopProject.Services;
 namespace ShopProject
 {
     internal class Program
@@ -12,6 +13,8 @@ namespace ShopProject
         [STAThread]
         static void Main(string[] args)
         {
+            try { Console.OutputEncoding = Encoding.UTF8; } catch { }
+            try { Console.InputEncoding = Encoding.UTF8; } catch { }
 
             Application.ApplicationExit += (sender, e) =>
             {

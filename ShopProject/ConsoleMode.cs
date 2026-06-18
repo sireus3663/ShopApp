@@ -1,11 +1,10 @@
-﻿using ShopProject.ConsoleCommands;
+using ShopProject.ConsoleCommands;
 using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Db;
-using ShopProject.Db.Interfaces;
 using ShopProject.Models;
 using ShopProject.Services;
-using ShopProject.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace ShopProject
 {
@@ -120,7 +119,7 @@ namespace ShopProject
                 }
                 else if (input.ToLower() == "clear")
                 {
-                    Console.Clear();
+                    try { Console.Clear(); } catch (IOException) { }
                     Console.WriteLine("Экран очищен");
                 }
                 else if (input.ToLower() == "exit")
@@ -202,29 +201,21 @@ namespace ShopProject
 
         private void RestoreSession()
         {
-            var userId = _configService.GetCurrentUserId();
-            if (userId == null) return;
-
             try
             {
-                var user = _userRepo.GetById(userId.Value);
-                if (user != null)
+                var restored = _authService.RestoreSessionAsync().GetAwaiter().GetResult();
+                if (restored)
                 {
-                    _authService.LoginById(user);
+                    var user = _authService.CurrentUser;
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"[OK] Сессия восстановлена: {user.Name} ({user.Role})");
                     Console.ResetColor();
                     _logger.Info($"Сессия восстановлена для пользователя {user.Email}");
                 }
-                else
-                {
-                    _configService.SetCurrentUserId(null);
-                }
             }
             catch (Exception ex)
             {
                 _logger.Error("Ошибка при восстановлении сессии", ex);
-                _configService.SetCurrentUserId(null);
             }
         }
 

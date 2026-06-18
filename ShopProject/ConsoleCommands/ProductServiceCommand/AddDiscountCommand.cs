@@ -1,9 +1,9 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Db.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
-
+using System.Globalization;
+using ShopProject.Db;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.ProductServiceCommand
 {
     public class AddDiscountCommand : BaseCommand
@@ -28,7 +28,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
             if (args.Length < 2) { Error("Укажите ID товара и процент скидки"); return; }
             if (_authService.CurrentUser == null) { Error("Сначала выполните вход"); return; }
             if (!Guid.TryParse(args[0], out var productId)) { Error("Некорректный ID товара"); return; }
-            if (!Decimal.TryParse(args[1], out var percent)) { Error("Процент должен быть числом"); return; }
+            if (!decimal.TryParse(args[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var percent)) { Error("Процент должен быть числом"); return; }
             var product = _productRepo.GetById(productId);
             if (product == null) { Error("Товар не найден"); return; }
             if (product.SellerId != _authService.CurrentUser.Id && _authService.CurrentUser.Role != Role.Admin) { Error("Вы можете добавлять скидку только на свои товары"); return; }

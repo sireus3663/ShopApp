@@ -1,9 +1,19 @@
-﻿using ShopProject.Db.Interfaces;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using static ShopProject.Services.StatisticService;
+
+using ShopProject.Db;
+namespace ShopProject.Services
+{
+    public interface IStatisticService
+    {
+        List<Order> GetProductSales(Guid productId);
+        ProductStatistic GetProductStatistic(Guid productId);
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -28,7 +38,7 @@ namespace ShopProject.Services
         public ProductStatistic GetProductStatistic(Guid productId)
         {
             var product = _productRepository.GetById(productId);
-            if (product == null) throw new Exception("Продукта не существует");
+            if (product == null) throw new Exception("РџСЂРѕРґСѓРєС‚Р° РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
             var productSales = GetProductSales(productId);
             var discount = _discountService.GetByProduct(productId);
             bool HasDiscount;

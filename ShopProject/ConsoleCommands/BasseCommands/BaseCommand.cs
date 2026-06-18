@@ -1,6 +1,7 @@
 ﻿using ShopProject.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,6 +36,11 @@ namespace ShopProject.ConsoleCommands.BasseCommands
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine($"[i] {msg}");
             Console.ResetColor();
+        }
+
+        protected void SafeClear()
+        {
+            try { Console.Clear(); } catch (IOException) { }
         }
     }
 }

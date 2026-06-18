@@ -312,7 +312,7 @@ namespace ShopProject.Forms
 
         private void InputBox_KeyDown(object? sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter && _isRunning && _consoleProcess != null)
+            if (e.KeyCode == Keys.Enter && _isRunning && _consoleProcess != null && !_consoleProcess.HasExited)
             {
                 var command = inputBox.Text.Trim();
                 if (!string.IsNullOrEmpty(command))

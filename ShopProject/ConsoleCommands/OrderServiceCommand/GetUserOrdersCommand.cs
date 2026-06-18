@@ -1,7 +1,7 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
-using ShopProject.Services.Interfaces;
+using ShopProject.ConsoleCommands.BasseCommands;
 using System;
 
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.OrderServiceCommand
 {
     public class GetUserOrdersCommand : BaseCommand

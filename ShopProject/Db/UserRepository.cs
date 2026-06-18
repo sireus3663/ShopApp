@@ -1,11 +1,22 @@
-﻿using Microsoft.EntityFrameworkCore;
 using ShopProject.Models;
-using ShopProject.Db.Interfaces;
 using System;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+
+namespace ShopProject.Db
+{
+    public interface IUserRepository : IRepository<User>
+    {
+        User? GetByEmail(string email);
+        bool Exists(string email);
+        Task<User?> GetByEmailAsync(string email);
+        Task<bool> ExistsAsync(string email);
+        Task<User?> GetByLoginAsync(string email, string password);
+    }
+}
 
 namespace ShopProject.Db
 {

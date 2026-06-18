@@ -1,8 +1,8 @@
-﻿using ShopProject.ConsoleCommands.BasseCommands;
+using ShopProject.ConsoleCommands.BasseCommands;
 using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
-
+using System.Globalization;
+using ShopProject.Services;
 namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
 {
     public class ChangeBalanceCommand : BaseCommand
@@ -47,7 +47,7 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
                 return;
             }
 
-            if (!decimal.TryParse(args[1], out var newBalance) || newBalance < 0)
+            if (!decimal.TryParse(args[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var newBalance) || newBalance < 0)
             {
                 Error("Сумма должна быть положительным числом");
                 return;

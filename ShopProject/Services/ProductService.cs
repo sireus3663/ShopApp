@@ -1,10 +1,37 @@
-﻿using ShopProject.Db.Interfaces;
-using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using ShopProject.Models;
 using System.Threading.Tasks;
+
+using ShopProject.Db;
+namespace ShopProject.Services
+{
+    public interface IProductService
+    {
+        List<Product> GetAllApproved();
+        List<Product> GetForModerate();
+        Product CreateProduct(string name, string description, decimal price, string category, byte[]? productImage = null, int amount = 0);
+        Product Approve(Guid productId);
+        void Decline(Guid productId);
+        void Delete(Guid productId);
+
+        Task<List<Product>> GetAllApprovedAsync();
+        Task<List<Product>> GetForModerateAsync();
+        Task<Product> CreateProductAsync(string name, string description, decimal price, string category, byte[]? productImage = null, int amount = 0);
+        Task<Product> ApproveAsync(Guid productId);
+        Task DeclineAsync(Guid productId);
+
+        Task<PaginatedResult<Product>> GetApprovedProductsPaginatedAsync(
+            string? searchText = null,
+            string? category = null,
+            decimal? priceFrom = null,
+            decimal? priceTo = null,
+            int page = 1,
+            int pageSize = 12);
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -27,7 +54,7 @@ namespace ShopProject.Services
         public List<Product> GetForModerate()
         {
             if (!PermissionService.CanModerate(_authService.RequireUser().Role))
-                throw new Exception("Только модераторы могут видить список непроверенных товаров");
+                throw new Exception("Только модераторы могут видеть список непроверенных товаров");
             return _productRepository.GetAll().Where(p => !p.IsApproved).ToList();
         }
 
@@ -59,7 +86,7 @@ namespace ShopProject.Services
             if (product == null) throw new Exception("Товар не найден");
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanModerate(currentUser.Role))
-                throw new Exception("Только модераторы или админы могут подтвержать товар");
+                throw new Exception("Только модераторы или админы могут подтверждать товар");
             product.IsApproved = true;
             _productRepository.Update(product);
             return product;
@@ -96,7 +123,7 @@ namespace ShopProject.Services
         public async Task<List<Product>> GetForModerateAsync()
         {
             if (!PermissionService.CanModerate(_authService.RequireUser().Role))
-                throw new Exception("Только модераторы могут видить список непроверенных товаров");
+                throw new Exception("Только модераторы могут видеть список непроверенных товаров");
             var products = await _productRepository.GetAllAsync();
             return products.Where(p => !p.IsApproved).ToList();
         }
@@ -129,7 +156,7 @@ namespace ShopProject.Services
             if (product == null) throw new Exception("Товар не найден");
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanModerate(currentUser.Role))
-                throw new Exception("Только модераторы или админы могут подтвержать товар");
+                throw new Exception("Только модераторы или админы могут подтверждать товар");
             product.IsApproved = true;
             await _productRepository.UpdateAsync(product);
             return product;

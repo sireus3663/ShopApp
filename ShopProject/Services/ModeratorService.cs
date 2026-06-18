@@ -1,7 +1,16 @@
-﻿using ShopProject.Db.Interfaces;
-using ShopProject.Models;
-using ShopProject.Services.Interfaces;
 using System;
+using ShopProject.Models;
+
+using ShopProject.Db;
+namespace ShopProject.Services
+{
+    public interface IModeratorService
+    {
+        void ViewUserProfile(string email);
+        void ChangeUserBalance(string email, decimal newBalance);
+        void ToggleBlockUser(string email);
+    }
+}
 
 namespace ShopProject.Services
 {
@@ -22,22 +31,22 @@ namespace ShopProject.Services
 
             if (!PermissionService.CanModerate(currentUser.Role))
             {
-                throw new Exception("Только модераторы и администраторы могут просматривать профили других пользователей");
+                throw new Exception("РўРѕР»СЊРєРѕ РјРѕРґРµСЂР°С‚РѕСЂС‹ Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂС‹ РјРѕРіСѓС‚ РїСЂРѕСЃРјР°С‚СЂРёРІР°С‚СЊ РїСЂРѕС„РёР»Рё РґСЂСѓРіРёС… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№");
             }
             var user = _userRepository.GetByEmail(email);
             if (user == null)
             {
-                throw new Exception($"Пользователь с email '{email}' не найден");
+                throw new Exception($"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ email '{email}' РЅРµ РЅР°Р№РґРµРЅ");
             }
             Console.WriteLine(new string('=', 50));
-            Console.WriteLine($"{"Профиль пользователя",-40}");
+            Console.WriteLine($"{"РџСЂРѕС„РёР»СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ",-40}");
             Console.WriteLine(new string('=', 50));
             Console.WriteLine($"{"ID:",-15} {user.Id}");
-            Console.WriteLine($"{"Имя:",-15} {user.Name}");
+            Console.WriteLine($"{"РРјСЏ:",-15} {user.Name}");
             Console.WriteLine($"{"Email:",-15} {user.Email}");
-            Console.WriteLine($"{"Роль:",-15} {user.Role}");
-            Console.WriteLine($"{"Баланс:",-15} {user.Balance} руб.");
-            Console.WriteLine($"{"Статус:",-15} {(user.IsBlocked ? "Заблокирован" : "Активен")}");
+            Console.WriteLine($"{"Р РѕР»СЊ:",-15} {user.Role}");
+            Console.WriteLine($"{"Р‘Р°Р»Р°РЅСЃ:",-15} {user.Balance} СЂСѓР±.");
+            Console.WriteLine($"{"РЎС‚Р°С‚СѓСЃ:",-15} {(user.IsBlocked ? "Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ" : "РђРєС‚РёРІРµРЅ")}");
             Console.WriteLine(new string('=', 50));
         }
 
@@ -46,21 +55,21 @@ namespace ShopProject.Services
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanModerate(currentUser.Role))
             {
-                throw new Exception("Только модераторы и администраторы могут изменять баланс пользователей");
+                throw new Exception("РўРѕР»СЊРєРѕ РјРѕРґРµСЂР°С‚РѕСЂС‹ Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂС‹ РјРѕРіСѓС‚ РёР·РјРµРЅСЏС‚СЊ Р±Р°Р»Р°РЅСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№");
             }
             if (newBalance < 0)
             {
-                throw new Exception("Баланс не может быть отрицательным");
+                throw new Exception("Р‘Р°Р»Р°РЅСЃ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Рј");
             }
             var user = _userRepository.GetByEmail(email);
             if (user == null)
             {
-                throw new Exception($"Пользователь с email '{email}' не найден");
+                throw new Exception($"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ email '{email}' РЅРµ РЅР°Р№РґРµРЅ");
             }
             var oldBalance = user.Balance;
             user.Balance = newBalance;
             _userRepository.Update(user);
-            Console.WriteLine($"Баланс пользователя {user.Name} изменён: {oldBalance} руб. → {newBalance} руб.");
+            Console.WriteLine($"Р‘Р°Р»Р°РЅСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ {user.Name} РёР·РјРµРЅС‘РЅ: {oldBalance} СЂСѓР±. в†’ {newBalance} СЂСѓР±.");
         }
 
         public void ToggleBlockUser(string email)
@@ -68,22 +77,22 @@ namespace ShopProject.Services
             var currentUser = _authService.RequireUser();
             if (!PermissionService.CanModerate(currentUser.Role))
             {
-                throw new Exception("Только модераторы и администраторы могут блокировать пользователей");
+                throw new Exception("РўРѕР»СЊРєРѕ РјРѕРґРµСЂР°С‚РѕСЂС‹ Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂС‹ РјРѕРіСѓС‚ Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№");
             }
             var user = _userRepository.GetByEmail(email);
             if (user == null)
             {
-                throw new Exception($"Пользователь с email '{email}' не найден");
+                throw new Exception($"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ email '{email}' РЅРµ РЅР°Р№РґРµРЅ");
             }
             if (user.Id == currentUser.Id)
             {
-                throw new Exception("Нельзя заблокировать самого себя");
+                throw new Exception("РќРµР»СЊР·СЏ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ СЃР°РјРѕРіРѕ СЃРµР±СЏ");
             }
             user.IsBlocked = !user.IsBlocked;
             _userRepository.Update(user);
 
-            var status = user.IsBlocked ? "заблокирован" : "разблокирован";
-            Console.WriteLine($"Пользователь {user.Name} {status}");
+            var status = user.IsBlocked ? "Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ" : "СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ";
+            Console.WriteLine($"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ {user.Name} {status}");
         }
     }
 }
