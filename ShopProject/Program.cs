@@ -2,7 +2,6 @@
 using ShopProject.Forms;
 using ShopProject.Services;
 using System;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ShopProject
@@ -10,7 +9,7 @@ namespace ShopProject
     internal class Program
     {
         [STAThread]
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             if (args.Length > 0 && args[0] == "--console")
             {
@@ -36,7 +35,7 @@ namespace ShopProject
             startup.InitializeOnFirstLaunch(context);
 
             var authService = new AuthService(context);
-            await authService.RestoreSession();
+            authService.RestoreSession().GetAwaiter().GetResult();
 
             Application.Run(new MainForm(authService, context));
         }
