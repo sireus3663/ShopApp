@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/main_itog.txt
+/main_master.txt
+/profile_itog.txt
+/profile_master.txt
