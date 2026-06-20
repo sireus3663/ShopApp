@@ -654,6 +654,12 @@ namespace ShopProject.Forms
             card.Margin = new Padding(8);
             card.BackColor = Color.White;
 
+            var discount = _discountService.GetByProduct(product.Id);
+            var hasDiscount = discount != null;
+            var finalPrice = hasDiscount
+                ? product.Price - (product.Price * discount!.Percent / 100)
+                : product.Price;
+
             EventHandler openDetail = (s, e) =>
             {
                 var detailForm = new ProductDetailForm(product, _authService, _context);
@@ -683,16 +689,15 @@ namespace ShopProject.Forms
                 Text = product.Category ?? "",
                 Font = new Font("Segoe UI", 8),
                 ForeColor = StyleHelper.TextMuted,
-                Location = new Point(12, 188),
+                Location = new Point(12, 200),
                 AutoSize = true
             };
             catLabel.Click += openDetail;
             card.Controls.Add(catLabel);
 
-            var finalPrice = _discountService.CalculatePrice(product);
-            int priceY = 208;
+            int priceY = 224;
 
-            if (finalPrice < product.Price)
+            if (hasDiscount)
             {
                 var oldPrice = new Label
                 {
@@ -706,7 +711,7 @@ namespace ShopProject.Forms
 
                 var newPrice = new Label
                 {
-                    Text = $"{finalPrice:N0} ₽",
+                    Text = $"{finalPrice:N0} ₽  -{discount!.Percent:F0}%",
                     Location = new Point(12, priceY + 16),
                     AutoSize = true,
                     Font = new Font("Segoe UI", 14, FontStyle.Bold),
@@ -884,11 +889,12 @@ namespace ShopProject.Forms
             var productRepo = new ProductRepository(_context);
             var userRepo = new UserRepository(_context);
             var orderService = new OrderService(_authService, _cartService, orderRepo, productRepo, userRepo, _discountService, _context);
-            var profileForm = new ProfileForm(_authService, _userService, _context, _productService, orderService);
+            var profileForm = new ProfileForm(_authService, _userService, _context, _productService, orderService, _discountService);
             profileForm.Owner = this;
             profileForm.ProductClicked = (product) => OpenProductDetail(product);
             profileForm.ProductClickedForModeration = (product, ps) => OpenProductDetail(product, ps);
             profileForm.OrderClicked = null;
+            profileForm.DiscountChanged = () => _ = RefreshAllData();
             ShowEmbeddedForm(profileForm);
             profileForm.RefreshData();
         }

@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 using ShopProject.Db;
 using ShopProject.Models;
@@ -145,6 +146,7 @@ namespace ShopProject.Forms
         private readonly AuthService _authService;
         private readonly AppDbContext _context;
         private readonly OrderService _orderService;
+        private readonly DiscountService _discountService;
         private Label lblTitle = null!;
         private Label lblCount = null!;
         private Label lblSubTotal = null!;
@@ -157,11 +159,12 @@ namespace ShopProject.Forms
 
         public Action<Product>? ProductClicked { get; set; }
 
-        public CartPanel(AuthService authService, AppDbContext context, OrderService orderService)
+        public CartPanel(AuthService authService, AppDbContext context, OrderService orderService, DiscountService discountService)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
+            _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
             InitializeComponents();
         }
 
@@ -344,7 +347,8 @@ namespace ShopProject.Forms
                 {
                     var product = _context.products.Find(item.ProductId);
                     if (product == null) continue;
-                    var sum = product.Price * item.Count;
+                    var price = _discountService.CalculatePrice(product);
+                    var sum = price * item.Count;
                     total += sum;
                     var card = MakeCartCard(product, item, cartRepo);
                     flowCart.Controls.Add(card);
@@ -388,7 +392,7 @@ namespace ShopProject.Forms
                 var product = _context.products.Find(item.ProductId);
                 if (product == null) continue;
                 count += item.Count;
-                total += product.Price * item.Count;
+                total += _discountService.CalculatePrice(product) * item.Count;
             }
             UpdateTotals(count, total, lblSubTotal, null);
         }
@@ -402,7 +406,7 @@ namespace ShopProject.Forms
 
         private Panel MakeCartCard(Product product, Cart item, CartRepository cartRepo)
         {
-            var card = StyleHelper.RoundedCard(300, 110);
+            var card = StyleHelper.RoundedCard(300, 130);
             card.Tag = product.Id;
             card.ParentChanged += (s, e) =>
             {
@@ -446,21 +450,37 @@ namespace ShopProject.Forms
             };
             lblName.Click += (s, e) => ProductClicked?.Invoke(product);
 
+            var finalPrice = _discountService.CalculatePrice(product);
+            var hasDiscount = finalPrice < product.Price;
+
             var lblUnitPrice = new Label
             {
-                Text = $"{product.Price:N0} ₽ / шт.",
+                Text = hasDiscount ? $"{finalPrice:N0} ₽ / шт." : $"{product.Price:N0} ₽ / шт.",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = StyleHelper.TextMuted,
                 Location = new Point(116, 44),
                 AutoSize = true
             };
 
-            var lineTotal = product.Price * item.Count;
+            if (hasDiscount)
+            {
+                var lblOldUnitPrice = new Label
+                {
+                    Text = $"{product.Price:N0} ₽ / шт.",
+                    Font = new Font("Segoe UI", 8, FontStyle.Strikeout),
+                    ForeColor = Color.Gray,
+                    Location = new Point(116, 34),
+                    AutoSize = true
+                };
+                card.Controls.Add(lblOldUnitPrice);
+            }
+
+            var lineTotal = finalPrice * item.Count;
             var lblLineTotal = new Label
             {
                 Text = $"{lineTotal:N0} ₽",
                 Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                ForeColor = StyleHelper.Accent,
+                ForeColor = hasDiscount ? StyleHelper.Danger : StyleHelper.Accent,
                 Location = new Point(card.Width - 150, 18),
                 AutoSize = true
             };
@@ -597,16 +617,18 @@ namespace ShopProject.Forms
     {
         private readonly AuthService _authService;
         private readonly AppDbContext _context;
+        private readonly DiscountService _discountService;
         private Label lblTitle = null!;
         private Label lblEmpty = null!;
         private FlowLayoutPanel flowFavorites = null!;
 
         public Action<Product>? ProductClicked { get; set; }
 
-        public FavoritesPanel(AuthService authService, AppDbContext context)
+        public FavoritesPanel(AuthService authService, AppDbContext context, DiscountService discountService)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
             InitializeComponents();
         }
 
@@ -677,101 +699,89 @@ namespace ShopProject.Forms
 
         private Panel MakeFavCard(Product product, FavoriteRepository favRepo, Guid userId)
         {
-            var card = StyleHelper.RoundedCard(240, 370, 12);
-            card.Margin = new Padding(10);
+            var card = StyleHelper.RoundedCard(200, 330, 10);
+            card.Margin = new Padding(8);
+            card.BackColor = Color.White;
 
-            var pb = StyleHelper.ProductImageBox(product.ProductImage, 212, 150);
-            pb.Location = new Point(14, 10);
+            EventHandler openDetail = (s, e) => ProductClicked?.Invoke(product);
+
+            var pb = StyleHelper.ProductImageBox(product.ProductImage, 176, 130);
+            pb.Location = new Point(12, 10);
             pb.Cursor = Cursors.Hand;
             StyleHelper.SetRoundedRegion(pb, 8);
-            pb.Click += (s, e) => ProductClicked?.Invoke(product);
+            pb.Click += openDetail;
+            card.Controls.Add(pb);
 
             var lblName = new Label
             {
                 Text = product.Name ?? "Без названия",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 ForeColor = StyleHelper.TextPrimary,
-                Location = new Point(14, 172),
-                Size = new Size(212, 44),
+                Location = new Point(12, 150),
+                Size = new Size(176, 38),
                 AutoEllipsis = true,
                 Cursor = Cursors.Hand
             };
-            lblName.Click += (s, e) => ProductClicked?.Invoke(product);
+            lblName.Click += openDetail;
+            card.Controls.Add(lblName);
 
-            var lblPrice = new Label
-            {
-                Text = $"{product.Price:N0} ₽",
-                Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                ForeColor = StyleHelper.Accent,
-                Location = new Point(14, 220),
-                AutoSize = true
-            };
-
-            var lblCategory = new Label
+            var catLabel = new Label
             {
                 Text = product.Category ?? "",
-                Font = new Font("Segoe UI", 9),
+                Font = new Font("Segoe UI", 8),
                 ForeColor = StyleHelper.TextMuted,
-                Location = new Point(14, 248),
+                Location = new Point(12, 200),
                 AutoSize = true
             };
+            catLabel.Click += openDetail;
+            card.Controls.Add(catLabel);
 
-            var btnRemove = new Button
-            {
-                Text = "✕ Убрать",
-                Location = new Point(14, 295),
-                Size = new Size(106, 36),
-                Font = new Font("Segoe UI", 9),
-                BackColor = Color.Transparent,
-                ForeColor = StyleHelper.Danger,
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
-            };
-            btnRemove.FlatAppearance.BorderSize = 1;
-            btnRemove.FlatAppearance.BorderColor = StyleHelper.Danger;
-            btnRemove.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                var path = StyleHelper.GetRoundedPath(btnRemove.ClientRectangle, 6);
-                using var pen = new Pen(btnRemove.ForeColor, 1);
-                e.Graphics.DrawPath(pen, path);
-                TextRenderer.DrawText(e.Graphics, btnRemove.Text, btnRemove.Font,
-                    btnRemove.ClientRectangle, btnRemove.ForeColor,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            };
-            btnRemove.MouseEnter += (s, e) => { btnRemove.BackColor = Color.FromArgb(254, 242, 242); btnRemove.Invalidate(); };
-            btnRemove.MouseLeave += (s, e) => { btnRemove.BackColor = Color.Transparent; btnRemove.Invalidate(); };
-            btnRemove.Click += (s, e) =>
-            {
-                var item = favRepo.GetFavoriteItem(userId, product.Id);
-                if (item != null) { favRepo.Delete(item.Id); favRepo.Save(); }
-                Refresh();
-            };
+            var finalPrice = _discountService.CalculatePrice(product);
+            var hasDiscount = finalPrice < product.Price;
+            int priceY = 224;
 
-            var btnCart = new Button
+            if (hasDiscount)
             {
-                Text = "🛒 В корзину",
-                Location = new Point(130, 295),
-                Size = new Size(106, 36),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                BackColor = StyleHelper.Accent,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
-            };
-            btnCart.FlatAppearance.BorderSize = 0;
-            btnCart.Paint += (s, e) =>
+                var discount = _discountService.GetByProduct(product.Id);
+
+                var oldPrice = new Label
+                {
+                    Text = $"{product.Price:N0} ₽",
+                    Location = new Point(12, priceY),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 9, FontStyle.Strikeout),
+                    ForeColor = Color.Gray
+                };
+                card.Controls.Add(oldPrice);
+
+                var newPrice = new Label
+                {
+                    Text = discount != null
+                        ? $"{finalPrice:N0} ₽  -{discount.Percent:F0}%"
+                        : $"{finalPrice:N0} ₽",
+                    Location = new Point(12, priceY + 16),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                    ForeColor = StyleHelper.Danger
+                };
+                newPrice.Click += openDetail;
+                card.Controls.Add(newPrice);
+            }
+            else
             {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                var path = StyleHelper.GetRoundedPath(btnCart.ClientRectangle, 6);
-                using var brush = new SolidBrush(btnCart.BackColor);
-                e.Graphics.FillPath(brush, path);
-                TextRenderer.DrawText(e.Graphics, btnCart.Text, btnCart.Font,
-                    btnCart.ClientRectangle, btnCart.ForeColor,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            };
-            btnCart.MouseEnter += (s, e) => { btnCart.BackColor = ControlPaint.Dark(StyleHelper.Accent, 0.1f); btnCart.Invalidate(); };
-            btnCart.MouseLeave += (s, e) => { btnCart.BackColor = StyleHelper.Accent; btnCart.Invalidate(); };
+                var priceLabel = new Label
+                {
+                    Text = $"{product.Price:N0} ₽",
+                    Location = new Point(12, priceY),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                    ForeColor = StyleHelper.TextPrimary
+                };
+                priceLabel.Click += openDetail;
+                card.Controls.Add(priceLabel);
+            }
+
+            var btnCart = StyleHelper.ModernBtn("🛒 В корзину", 12, 280, 120, 34, StyleHelper.Accent, Color.White, true);
             btnCart.Click += (s, e) =>
             {
                 var cartRepo = new CartRepository(_context);
@@ -782,8 +792,67 @@ namespace ShopProject.Forms
                 MessageBox.Show($"«{product.Name}» добавлен в корзину!", "Корзина",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
+            card.Controls.Add(btnCart);
 
-            card.Controls.AddRange(new Control[] { pb, lblName, lblPrice, btnRemove, btnCart });
+            var btnRemove = new Button
+            {
+                Text = "✕",
+                Size = new Size(46, 34),
+                Location = new Point(142, 280),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(156, 163, 175),
+                Font = new Font("Segoe UI", 14),
+                Cursor = Cursors.Hand
+            };
+            btnRemove.FlatAppearance.BorderSize = 0;
+            btnRemove.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var b = (Button)s!;
+                using var path = StyleHelper.GetRoundedPath(b.ClientRectangle, 8);
+                e.Graphics.FillPath(new SolidBrush(b.BackColor), path);
+                using var pen = new Pen(StyleHelper.Border, 1);
+                e.Graphics.DrawPath(pen, path);
+                TextRenderer.DrawText(e.Graphics, b.Text, b.Font,
+                    b.ClientRectangle, b.ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            btnRemove.MouseEnter += (s, e) => { btnRemove.BackColor = Color.FromArgb(254, 242, 242); btnRemove.ForeColor = StyleHelper.Danger; btnRemove.Invalidate(); };
+            btnRemove.MouseLeave += (s, e) => { btnRemove.BackColor = Color.White; btnRemove.ForeColor = Color.FromArgb(156, 163, 175); btnRemove.Invalidate(); };
+            btnRemove.Click += (s, e) =>
+            {
+                var item = favRepo.GetFavoriteItem(userId, product.Id);
+                if (item != null) { favRepo.Delete(item.Id); favRepo.Save(); }
+                Refresh();
+            };
+            card.Controls.Add(btnRemove);
+
+            card.MouseEnter += (s, e) =>
+            {
+                card.BackColor = Color.FromArgb(248, 250, 252);
+                card.Invalidate();
+            };
+            card.MouseLeave += (s, e) =>
+            {
+                card.BackColor = Color.White;
+                card.Invalidate();
+            };
+            foreach (Control c in card.Controls)
+            {
+                c.MouseEnter += (s, e) =>
+                {
+                    card.BackColor = Color.FromArgb(248, 250, 252);
+                    card.Invalidate();
+                };
+                c.MouseLeave += (s, e) =>
+                {
+                    card.BackColor = Color.White;
+                    card.Invalidate();
+                };
+            }
+
+            card.Click += openDetail;
             return card;
         }
     }
@@ -2128,6 +2197,706 @@ namespace ShopProject.Forms
         public new void Refresh()
         {
             lblSuccess.Visible = false;
+        }
+    }
+
+    public class MyProductsPanel : Panel, IRefreshable
+    {
+        private readonly AuthService _authService;
+        private readonly AppDbContext _context;
+        private readonly DiscountService _discountService;
+        private readonly StatisticService _statisticService;
+        private Label lblTitle = null!;
+        private Label lblEmpty = null!;
+        private FlowLayoutPanel flowProducts = null!;
+        private Panel pnlStats = null!;
+
+        public Action<Product>? ProductClicked { get; set; }
+        public Action? DiscountChanged { get; set; }
+
+        public MyProductsPanel(AuthService authService, AppDbContext context,
+            DiscountService discountService, StatisticService statisticService)
+        {
+            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
+            _statisticService = statisticService ?? throw new ArgumentNullException(nameof(statisticService));
+            InitializeComponents();
+        }
+
+        private void InitializeComponents()
+        {
+            BackColor = StyleHelper.BgPage;
+
+            lblTitle = StyleHelper.CardTitle("📋 Управление товарами", 24, 0);
+
+            flowProducts = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoScroll = true,
+                BackColor = StyleHelper.BgPage
+            };
+            flowProducts.HandleCreated += (s, e) =>
+            {
+                flowProducts.HorizontalScroll.Enabled = false;
+                flowProducts.HorizontalScroll.Visible = false;
+            };
+            flowProducts.Layout += (s, e) =>
+            {
+                int cw = Math.Max(flowProducts.ClientSize.Width, flowProducts.Width - SystemInformation.VerticalScrollBarWidth);
+                if (cw <= 0) return;
+                foreach (Control c in flowProducts.Controls)
+                    if (c is Panel p) p.Width = cw;
+            };
+
+            lblEmpty = new Label
+            {
+                Text = "📋  У вас пока нет созданных товаров",
+                Font = new Font("Segoe UI", 14),
+                ForeColor = StyleHelper.TextMuted,
+                AutoSize = true,
+                Visible = false
+            };
+
+            Controls.AddRange(new Control[] { lblTitle, flowProducts, lblEmpty });
+
+            pnlStats = new Panel
+            {
+                BackColor = Color.White,
+                AutoScroll = true,
+                Visible = false
+            };
+            Controls.Add(pnlStats);
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            const int margin = 24;
+            lblTitle.Location = new Point(margin, 16);
+            flowProducts.Location = new Point(margin, 55);
+            flowProducts.Size = new Size(Width - margin * 2, Height - 75);
+            if (pnlStats != null)
+                pnlStats.Location = new Point(margin, 55);
+                pnlStats.Size = new Size(Width - margin * 2, Height - 75);
+            if (lblEmpty != null)
+                lblEmpty.Location = new Point(margin, Math.Max(80, Height / 2 - 30));
+        }
+
+        public new void Refresh()
+        {
+            flowProducts.Controls.Clear();
+            var user = _authService.currentUser;
+            if (user == null) { lblEmpty.Visible = true; return; }
+
+            try
+            {
+                var productRepo = new ProductRepository(_context);
+                var products = productRepo.GetAll()
+                    .Where(p => p.SellerId == user.Id)
+                    .OrderByDescending(p => p.IsApproved)
+                    .ThenBy(p => p.Name)
+                    .ToList();
+
+                if (!products.Any()) { lblEmpty.Visible = true; return; }
+                lblEmpty.Visible = false;
+
+                foreach (var product in products)
+                {
+                    var card = MakeProductCard(product);
+                    flowProducts.Controls.Add(card);
+                }
+
+                BeginInvoke(new Action(() =>
+                {
+                    int cw = flowProducts.ClientSize.Width;
+                    if (cw > 0)
+                        foreach (Control c in flowProducts.Controls)
+                            if (c is Panel p) p.Width = cw;
+                }));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки товаров: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private Panel MakeProductCard(Product product)
+        {
+            var card = new Panel
+            {
+                Height = 120,
+                Margin = new Padding(0, 0, 0, 8)
+            };
+            card.ParentChanged += (s, e) =>
+            {
+                if (card.Parent is FlowLayoutPanel flp && flp.ClientSize.Width > 0)
+                    card.Width = flp.ClientSize.Width;
+            };
+
+            card.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var rect = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
+                int r = 10;
+                for (int i = 0; i < 3; i++)
+                {
+                    using var shPath = StyleHelper.GetRoundedPath(
+                        new Rectangle(rect.X + i + 1, rect.Y + i + 3, rect.Width - i * 2, rect.Height - i * 2), r - i);
+                    using var shBrush = new SolidBrush(Color.FromArgb(8 + i * 2, 0, 0, 0));
+                    e.Graphics.FillPath(shBrush, shPath);
+                }
+                using var bodyPath = StyleHelper.GetRoundedPath(rect, r);
+                using var bodyBrush = new SolidBrush(Color.White);
+                e.Graphics.FillPath(bodyBrush, bodyPath);
+                using var borderPen = new Pen(StyleHelper.Border, 1);
+                e.Graphics.DrawPath(borderPen, bodyPath);
+
+                var accentColor = product.IsApproved ? StyleHelper.Accent : Color.FromArgb(217, 119, 6);
+                using var accentPath = StyleHelper.GetRoundedPath(new Rectangle(5, 12, 4, card.Height - 24), 2);
+                using var accentBrush = new SolidBrush(accentColor);
+                e.Graphics.FillPath(accentBrush, accentPath);
+            };
+
+            var pb = StyleHelper.ProductImageBox(product.ProductImage, 88, 88);
+            pb.Location = new Point(18, 16);
+            pb.Cursor = Cursors.Hand;
+            StyleHelper.SetRoundedRegion(pb, 10);
+            pb.Click += (s, e) => ProductClicked?.Invoke(product);
+
+            int leftX = 120;
+
+            var lblName = new Label
+            {
+                Text = product.Name ?? "Без названия",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = StyleHelper.TextPrimary,
+                Location = new Point(leftX, 16),
+                AutoSize = true,
+                Cursor = Cursors.Hand
+            };
+            lblName.Click += (s, e) => ProductClicked?.Invoke(product);
+
+            var lblCategory = new Label
+            {
+                Text = $"📂 {product.Category ?? "Без категории"}",
+                Font = new Font("Segoe UI", 9),
+                ForeColor = StyleHelper.TextMuted,
+                Location = new Point(leftX, 42),
+                AutoSize = true
+            };
+
+            var finalPrice = _discountService.CalculatePrice(product);
+            var hasDiscount = finalPrice < product.Price;
+
+            int priceLabelTop = 64;
+            if (hasDiscount)
+            {
+                var lblOldPrice = new Label
+                {
+                    Text = $"{product.Price:N0} ₽",
+                    Font = new Font("Segoe UI", 9, FontStyle.Strikeout),
+                    ForeColor = Color.Gray,
+                    Location = new Point(leftX, priceLabelTop),
+                    AutoSize = true
+                };
+                card.Controls.Add(lblOldPrice);
+
+                var lblPrice = new Label
+                {
+                    Text = $"{finalPrice:N0} ₽",
+                    Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                    ForeColor = StyleHelper.Danger,
+                    Location = new Point(leftX + TextRenderer.MeasureText($"{finalPrice:N0} ₽", new Font("Segoe UI", 14, FontStyle.Bold)).Width + 8, priceLabelTop + 2),
+                    AutoSize = true
+                };
+                var pctOff = (1 - finalPrice / product.Price) * 100;
+                var lblPct = new Label
+                {
+                    Text = $"-{pctOff:F0}%",
+                    Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    BackColor = StyleHelper.Danger,
+                    Location = new Point(leftX, priceLabelTop + 28),
+                    AutoSize = true,
+                    Padding = new Padding(4, 1, 4, 1)
+                };
+                card.Controls.Add(lblPrice);
+                card.Controls.Add(lblPct);
+            }
+            else
+            {
+                var lblPrice = new Label
+                {
+                    Text = $"{product.Price:N0} ₽",
+                    Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                    ForeColor = StyleHelper.Accent,
+                    Location = new Point(leftX, priceLabelTop),
+                    AutoSize = true
+                };
+                card.Controls.Add(lblPrice);
+            }
+
+            var existingDisc = _discountService.GetByProduct(product.Id);
+
+            var btnStats = new Button
+            {
+                Text = "📊 Статистика",
+                Size = new Size(140, 36),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                BackColor = Color.FromArgb(37, 99, 235),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnStats.FlatAppearance.BorderSize = 0;
+            btnStats.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var path = StyleHelper.GetRoundedPath(btnStats.ClientRectangle, 6);
+                using var brush = new SolidBrush(btnStats.BackColor);
+                e.Graphics.FillPath(brush, path);
+                TextRenderer.DrawText(e.Graphics, btnStats.Text, btnStats.Font,
+                    btnStats.ClientRectangle, btnStats.ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            btnStats.MouseEnter += (s, e) => { btnStats.BackColor = ControlPaint.Dark(Color.FromArgb(37, 99, 235), 0.1f); btnStats.Invalidate(); };
+            btnStats.MouseLeave += (s, e) => { btnStats.BackColor = Color.FromArgb(37, 99, 235); btnStats.Invalidate(); };
+            btnStats.Click += (s, e) => ShowProductStatsPanel(product);
+
+            var btnDiscount = new Button
+            {
+                Text = existingDisc != null ? "🏷 Изменить скидку" : "🏷 Добавить скидку",
+                Size = new Size(150, 36),
+                Font = new Font("Segoe UI", 9),
+                BackColor = Color.Transparent,
+                ForeColor = StyleHelper.Accent,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnDiscount.FlatAppearance.BorderSize = 1;
+            btnDiscount.FlatAppearance.BorderColor = StyleHelper.Accent;
+            btnDiscount.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var path = StyleHelper.GetRoundedPath(btnDiscount.ClientRectangle, 6);
+                using var pen = new Pen(btnDiscount.ForeColor, 1);
+                e.Graphics.DrawPath(pen, path);
+                TextRenderer.DrawText(e.Graphics, btnDiscount.Text, btnDiscount.Font,
+                    btnDiscount.ClientRectangle, btnDiscount.ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            btnDiscount.MouseEnter += (s, e) => { btnDiscount.BackColor = Color.FromArgb(239, 246, 255); btnDiscount.Invalidate(); };
+            btnDiscount.MouseLeave += (s, e) => { btnDiscount.BackColor = Color.Transparent; btnDiscount.Invalidate(); };
+            btnDiscount.Click += (s, e) => ManageDiscount(product);
+
+            if (!product.IsApproved)
+            {
+                var lblPending = new Label
+                {
+                    Text = "⏳ На модерации",
+                    Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(217, 119, 6),
+                    Location = new Point(leftX + (lblName.Width > 0 ? lblName.Width + 10 : 200), 20),
+                    AutoSize = true
+                };
+                card.Controls.Add(lblPending);
+                card.Resize += (s, e) =>
+                {
+                    lblPending.Location = new Point(leftX + (lblName.Width > 0 ? lblName.Width + 10 : 200), 20);
+                };
+            }
+
+            card.Controls.AddRange(new Control[] { pb, lblName, lblCategory, btnStats, btnDiscount });
+
+            card.Resize += (s, e) =>
+            {
+                btnStats.Location = new Point(card.Width - 310, 42);
+                btnDiscount.Location = new Point(card.Width - 160, 42);
+            };
+
+            return card;
+        }
+
+        private void ShowProductStatsPanel(Product product)
+        {
+            flowProducts.Visible = false;
+            lblEmpty.Visible = false;
+            pnlStats.Visible = true;
+            pnlStats.Controls.Clear();
+
+            var stats = _statisticService.GetProductStatistic(product.Id);
+            int y = 20;
+
+            var btnBack = new Label
+            {
+                Text = "← Назад к товарам",
+                Font = new Font("Segoe UI", 10, FontStyle.Underline),
+                ForeColor = StyleHelper.Accent,
+                Location = new Point(0, 0),
+                AutoSize = true,
+                Cursor = Cursors.Hand
+            };
+            btnBack.Click += (s, e) =>
+            {
+                pnlStats.Visible = false;
+                flowProducts.Visible = true;
+            };
+            pnlStats.Controls.Add(btnBack);
+            y += 30;
+
+            var pb = StyleHelper.ProductImageBox(product.ProductImage, 100, 100);
+            pb.Location = new Point(0, y);
+            pnlStats.Controls.Add(pb);
+
+            int leftX = 118;
+            var lblName = new Label
+            {
+                Text = product.Name,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                ForeColor = StyleHelper.TextPrimary,
+                Location = new Point(leftX, y + 4),
+                AutoSize = true,
+                MaximumSize = new Size(pnlStats.Width - leftX - 20, 0)
+            };
+            pnlStats.Controls.Add(lblName);
+
+            pnlStats.Controls.Add(new Label
+            {
+                Text = $"📂 {product.Category}",
+                Font = new Font("Segoe UI", 10),
+                ForeColor = StyleHelper.Accent,
+                Location = new Point(leftX, y + 32),
+                AutoSize = true
+            });
+
+            pnlStats.Controls.Add(new Label
+            {
+                Text = product.IsApproved ? "✅ Одобрен" : "⏳ На модерации",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = product.IsApproved ? StyleHelper.Success : Color.FromArgb(217, 119, 6),
+                Location = new Point(leftX, y + 54),
+                AutoSize = true
+            });
+
+            y += 120;
+
+            int cardW = (pnlStats.Width - 36) / 2;
+            if (cardW < 140) cardW = 140;
+
+            AddMetricSmall(pnlStats, "Цена", $"{stats.Price:N0} ₽", StyleHelper.Accent, 0, y, cardW);
+            AddMetricSmall(pnlStats, "Со скидкой", $"{stats.FinalPrice:N0} ₽",
+                stats.HasDiscount ? StyleHelper.Danger : StyleHelper.Accent, cardW + 12, y, cardW);
+
+            if (stats.HasDiscount)
+            {
+                pnlStats.Controls.Add(new Label
+                {
+                    Text = $"🔥 -{stats.DiscountPercent:F0}%",
+                    Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    BackColor = StyleHelper.Danger,
+                    AutoSize = true,
+                    Padding = new Padding(6, 2, 6, 2),
+                    Location = new Point(cardW + 12 + cardW - 80, y + 60)
+                });
+            }
+
+            y += 110;
+
+            AddMetricSmall(pnlStats, "Продано", $"{stats.SalesCount} шт.", StyleHelper.Success, 0, y, cardW);
+            AddMetricSmall(pnlStats, "Выручка", $"{stats.Revenue:N0} ₽", Color.FromArgb(217, 119, 6), cardW + 12, y, cardW);
+
+            y += 100;
+
+            if (stats.SalesCount > 0)
+            {
+                var orderRepo = new OrderRepository(_context);
+                var sales = orderRepo.GetByProduct(product.Id)
+                    .OrderByDescending(o => o.CreatedAt)
+                    .Take(10)
+                    .ToList();
+
+                if (sales.Any())
+                {
+                    pnlStats.Controls.Add(new Label
+                    {
+                        Text = "📋 Последние продажи",
+                        Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                        ForeColor = StyleHelper.TextPrimary,
+                        Location = new Point(0, y),
+                        AutoSize = true
+                    });
+                    y += 30;
+
+                    foreach (var s in sales.Take(5))
+                    {
+                        pnlStats.Controls.Add(new Label
+                        {
+                            Text = $"  {s.CreatedAt:dd.MM.yyyy}  —  {s.Count} шт. × {s.Price / s.Count:N0} ₽ = {s.Price:N0} ₽",
+                            Font = new Font("Segoe UI", 9),
+                            ForeColor = StyleHelper.TextMuted,
+                            Location = new Point(0, y),
+                            AutoSize = true
+                        });
+                        y += 26;
+                    }
+                }
+            }
+
+            pnlStats.Controls.Add(new Label
+            {
+                Text = "",
+                Location = new Point(0, y + 10),
+                Size = new Size(1, 20)
+            });
+        }
+
+        private static void AddMetricSmall(Panel parent, string label, string value, Color accent, int x, int y, int width)
+        {
+            var card = new Panel
+            {
+                Size = new Size(width, 80),
+                BackColor = StyleHelper.BgCard,
+                Location = new Point(x, y)
+            };
+            card.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using var path = StyleHelper.GetRoundedPath(card.ClientRectangle, 10);
+                e.Graphics.FillPath(new SolidBrush(StyleHelper.BgCard), path);
+                using var pen = new Pen(StyleHelper.Border, 1);
+                e.Graphics.DrawPath(pen, path);
+                using var accentPen = new Pen(accent, 3);
+                var topPath = StyleHelper.GetRoundedPath(new Rectangle(0, -3, card.Width, 6), 3);
+                e.Graphics.DrawPath(accentPen, topPath);
+            };
+
+            card.Controls.Add(new Label
+            {
+                Text = value,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = accent,
+                Location = new Point(14, 12),
+                AutoSize = true
+            });
+            card.Controls.Add(new Label
+            {
+                Text = label,
+                Font = new Font("Segoe UI", 9),
+                ForeColor = StyleHelper.TextMuted,
+                Location = new Point(14, 48),
+                AutoSize = true
+            });
+
+            parent.Controls.Add(card);
+        }
+
+        private void ManageDiscount(Product product)
+        {
+            var existingDisc = _discountService.GetByProduct(product.Id);
+
+            using var form = new Form
+            {
+                Text = existingDisc != null ? $"Скидка — {product.Name}" : $"Добавить скидку — {product.Name}",
+                Size = new Size(400, 260),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White
+            };
+
+            var lblCurrentPrice = new Label
+            {
+                Text = $"Текущая цена: {product.Price:N0} ₽",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = StyleHelper.Accent,
+                Location = new Point(24, 20),
+                AutoSize = true
+            };
+
+            var lblPercent = new Label
+            {
+                Text = "Процент скидки:",
+                Font = new Font("Segoe UI", 9),
+                ForeColor = StyleHelper.TextMuted,
+                Location = new Point(24, 56),
+                AutoSize = true
+            };
+
+            var txtPercent = new TextBox
+            {
+                Text = existingDisc?.Percent.ToString("F0") ?? "",
+                Location = new Point(24, 76),
+                Size = new Size(80, 24),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                TextAlign = HorizontalAlignment.Center
+            };
+
+            var lblPercentSign = new Label
+            {
+                Text = "%",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = StyleHelper.TextPrimary,
+                Location = new Point(110, 78),
+                AutoSize = true
+            };
+
+            var trackBar = new TrackBar
+            {
+                Minimum = 0,
+                Maximum = 99,
+                Value = existingDisc != null ? (int)existingDisc.Percent : 0,
+                TickFrequency = 10,
+                SmallChange = 1,
+                LargeChange = 5,
+                Location = new Point(150, 72),
+                Size = new Size(200, 45),
+                BackColor = Color.White
+            };
+
+            var lblResult = new Label
+            {
+                Text = "",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = StyleHelper.Danger,
+                Location = new Point(24, 125),
+                AutoSize = true
+            };
+
+            Action updatePreview = () =>
+            {
+                if (decimal.TryParse(txtPercent.Text, out decimal p) && p >= 0 && p <= 99)
+                {
+                    var discPrice = product.Price - (product.Price * p / 100);
+                    lblResult.Text = $"Цена со скидкой: {discPrice:N0} ₽";
+                    lblResult.ForeColor = StyleHelper.Danger;
+                    if (trackBar.Value != (int)p)
+                        trackBar.Value = (int)p;
+                }
+                else
+                {
+                    lblResult.Text = "";
+                }
+            };
+
+            txtPercent.TextChanged += (s, e) => updatePreview();
+            trackBar.ValueChanged += (s, e) =>
+            {
+                txtPercent.Text = trackBar.Value.ToString();
+            };
+
+            if (existingDisc != null)
+            {
+                updatePreview();
+            }
+
+            var btnOk = new Button
+            {
+                Text = existingDisc != null ? "Обновить" : "Добавить",
+                Location = new Point(24, 165),
+                Size = new Size(120, 36),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                BackColor = StyleHelper.Accent,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                DialogResult = DialogResult.OK
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+            btnOk.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var path = StyleHelper.GetRoundedPath(btnOk.ClientRectangle, 6);
+                using var brush = new SolidBrush(btnOk.BackColor);
+                e.Graphics.FillPath(brush, path);
+                TextRenderer.DrawText(e.Graphics, btnOk.Text, btnOk.Font,
+                    btnOk.ClientRectangle, btnOk.ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+
+            Button? btnRemove = null;
+            if (existingDisc != null)
+            {
+                btnRemove = new Button
+                {
+                    Text = "Удалить скидку",
+                    Location = new Point(160, 165),
+                    Size = new Size(140, 36),
+                    Font = new Font("Segoe UI", 9),
+                    BackColor = Color.Transparent,
+                    ForeColor = StyleHelper.Danger,
+                    FlatStyle = FlatStyle.Flat,
+                    Cursor = Cursors.Hand
+                };
+                btnRemove.FlatAppearance.BorderSize = 1;
+                btnRemove.FlatAppearance.BorderColor = StyleHelper.Danger;
+                btnRemove.Paint += (s, e) =>
+                {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    var path = StyleHelper.GetRoundedPath(btnRemove.ClientRectangle, 6);
+                    using var pen = new Pen(btnRemove.ForeColor, 1);
+                    e.Graphics.DrawPath(pen, path);
+                    TextRenderer.DrawText(e.Graphics, btnRemove.Text, btnRemove.Font,
+                        btnRemove.ClientRectangle, btnRemove.ForeColor,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                };
+            }
+
+            form.Controls.AddRange(new Control[] { lblCurrentPrice, lblPercent, txtPercent, lblPercentSign, trackBar, lblResult, btnOk });
+            if (btnRemove != null) form.Controls.Add(btnRemove);
+
+            btnOk.Click += (s, e) =>
+            {
+                if (!decimal.TryParse(txtPercent.Text, out decimal percent) || percent < 0 || percent > 99)
+                {
+                    MessageBox.Show("Введите корректный процент (0-99)", "Ошибка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    form.DialogResult = DialogResult.None;
+                    return;
+                }
+
+                try
+                {
+                    _discountService.CreateDiscount(product, percent);
+                    MessageBox.Show($"Скидка {percent:F0}% добавлена на товар «{product.Name}»", "Успех",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Refresh();
+                    DiscountChanged?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    form.DialogResult = DialogResult.None;
+                }
+            };
+
+            if (btnRemove != null)
+            {
+                btnRemove.Click += (s, e) =>
+                {
+                    try
+                    {
+                        _discountService.RemoveDiscount(product.Id);
+                        MessageBox.Show($"Скидка удалена с товара «{product.Name}»", "Успех",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        form.Close();
+                        Refresh();
+                        DiscountChanged?.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+            }
+
+            form.ShowDialog(this);
         }
     }
 }
