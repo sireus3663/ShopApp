@@ -16,6 +16,7 @@ namespace ShopProject.Forms
         private readonly AppDbContext _context;
         private readonly ProductService _productService;
         private readonly OrderService _orderService;
+        private readonly DiscountService _discountService;
         private Panel pnlNav = null!;
         private Button btnCart = null!;
         private Button btnFavorites = null!;
@@ -33,6 +34,7 @@ namespace ShopProject.Forms
         private StatisticPanel statisticPanel = null!;
         private OrdersPanel ordersPanel = null!;
         private CreateProductPanel createProductPanel = null!;
+        private MyProductsPanel myProductsPanel = null!;
 
         private List<Button> _navButtons = new List<Button>();
         private Button? _activeNavButton = null;
@@ -40,15 +42,17 @@ namespace ShopProject.Forms
         public Action<Product>? ProductClicked { get; set; }
         public Action<Product, ProductService>? ProductClickedForModeration { get; set; }
         public Action<Order>? OrderClicked { get; set; }
+        public Action? DiscountChanged { get; set; }
 
         public ProfileForm(AuthService authService, UserService userService, AppDbContext context,
-            ProductService productService, OrderService orderService)
+            ProductService productService, OrderService orderService, DiscountService discountService)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
             _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
+            _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
             InitializeComponents();
             ShowPanel(profilePanel);
         }
@@ -239,16 +243,18 @@ namespace ShopProject.Forms
                     AddRoleNavButton(pnlNavScroll, "📝 Модерация товаров", y, OpenModeration); y += 45;
                     AddRoleNavButton(pnlNavScroll, "📊 Статистика", y, OpenStatistics); y += 45;
                     AddRoleNavButton(pnlNavScroll, "🖥 Консоль", y, OpenConsole); y += 45;
-                    AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm);
+                    AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📋 Управление товарами", y, OpenMyProducts);
                 }
                 else if (role == Role.Moderator)
                 {
                     AddRoleNavButton(pnlNavScroll, "📝 Модерация", y, OpenModeration); y += 45;
-                    AddRoleNavButton(pnlNavScroll, "📋 Список жалоб", y, OpenComplaints);
+                    AddRoleNavButton(pnlNavScroll, "📋 Список жалоб", y, OpenComplaints); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📋 Управление товарами", y, OpenMyProducts);
                 }
                 else if (role == Role.Seller)
                 {
-                    AddRoleNavButton(pnlNavScroll, "📦 Мои товары", y, ShowMyProducts); y += 45;
+                    AddRoleNavButton(pnlNavScroll, "📋 Управление товарами", y, OpenMyProducts); y += 45;
                     AddRoleNavButton(pnlNavScroll, "➕ Создать товар", y, OpenCreateProductForm); y += 45;
                     AddRoleNavButton(pnlNavScroll, "📊 Статистика", y, OpenStatistics);
                 }
@@ -333,9 +339,14 @@ namespace ShopProject.Forms
             Resize += (s, e) =>
                 pnlContent.Size = new Size(ClientSize.Width - 220, ClientSize.Height);
 
-            cartPanel = new CartPanel(_authService, _context, _orderService) { Dock = DockStyle.Fill, Visible = false };
+            var statService = new StatisticService(
+                new OrderRepository(_context),
+                new ProductRepository(_context),
+                _discountService);
+
+            cartPanel = new CartPanel(_authService, _context, _orderService, _discountService) { Dock = DockStyle.Fill, Visible = false };
             cartPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
-            favoritesPanel = new FavoritesPanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
+            favoritesPanel = new FavoritesPanel(_authService, _context, _discountService) { Dock = DockStyle.Fill, Visible = false };
             favoritesPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
             profilePanel = new ProfilePanel(_authService, _context) { Dock = DockStyle.Fill, Visible = false };
             statisticPanel = new StatisticPanel(_context, _authService) { Dock = DockStyle.Fill, Visible = false };
@@ -343,6 +354,9 @@ namespace ShopProject.Forms
             ordersPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
             ordersPanel.OrderProductClicked = (order) => OrderClicked?.Invoke(order);
             createProductPanel = new CreateProductPanel(_authService, _productService, _context) { Dock = DockStyle.Fill, Visible = false };
+            myProductsPanel = new MyProductsPanel(_authService, _context, _discountService, statService) { Dock = DockStyle.Fill, Visible = false };
+            myProductsPanel.ProductClicked = (product) => ProductClicked?.Invoke(product);
+            myProductsPanel.DiscountChanged = () => DiscountChanged?.Invoke();
 
             pnlContent.Controls.AddRange(new Control[]
             {
@@ -351,7 +365,8 @@ namespace ShopProject.Forms
                 profilePanel,
                 statisticPanel,
                 ordersPanel,
-                createProductPanel
+                createProductPanel,
+                myProductsPanel
             });
         }
 
@@ -458,6 +473,11 @@ namespace ShopProject.Forms
         private void OpenCreateProductForm()
         {
             ShowPanel(createProductPanel);
+        }
+
+        private void OpenMyProducts()
+        {
+            ShowPanel(myProductsPanel);
         }
 
         private void OpenComplaints()

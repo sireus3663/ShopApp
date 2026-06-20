@@ -23,6 +23,13 @@ namespace ShopProject.Forms
         private Button btnFavorite = null!;
         private Button btnApprove = null!;
         private Button btnDecline = null!;
+        private Label lblDiscountBadge = null!;
+        private Label lblSeller = null!;
+        private Label lblSeparator1 = null!;
+        private Label lblSeparator2 = null!;
+        private Panel pnlDescriptionWrapper = null!;
+        private RichTextBox rtbDescription = null!;
+        private FlowLayoutPanel rightFlow = null!;
         private bool _isFavorite;
 
         public ProductDetailForm(Product product, AuthService authService, AppDbContext context, ProductService? productService = null)
@@ -68,31 +75,56 @@ namespace ShopProject.Forms
                 BackColor = Color.White
             };
 
+            var imageCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(241, 245, 249),
+                Margin = new Padding(0),
+                Padding = new Padding(2)
+            };
+            imageCard.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var rect = new Rectangle(0, 0, imageCard.Width - 1, imageCard.Height - 1);
+                using var path = StyleHelper.GetRoundedPath(rect, 12);
+                using var fill = new SolidBrush(Color.FromArgb(241, 245, 249));
+                e.Graphics.FillPath(fill, path);
+                using var pen = new Pen(StyleHelper.Border, 1);
+                e.Graphics.DrawPath(pen, path);
+                using var shadow = new SolidBrush(Color.FromArgb(16, 0, 0, 0));
+                e.Graphics.FillRectangle(shadow, 4, imageCard.Height - 6, imageCard.Width - 8, 6);
+            };
+
             pbImage = new PictureBox
             {
                 Dock = DockStyle.Fill,
                 SizeMode = PictureBoxSizeMode.Zoom,
-                BackColor = Color.FromArgb(241, 245, 249)
+                BackColor = Color.Transparent
             };
-            leftPanel.Controls.Add(pbImage);
+            imageCard.Controls.Add(pbImage);
+            leftPanel.Controls.Add(imageCard);
 
-            var rightPanel = new Panel
+            rightFlow = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                Padding = new Padding(40, 0, 0, 0)
+                Padding = new Padding(40, 0, 10, 16),
+                AutoScroll = true,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false
             };
 
             btnBack = new Button
             {
-                Text = "← Назад",
+                Text = "← Назад к каталогу",
                 AutoSize = true,
                 Font = new Font("Segoe UI", 10),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(241, 245, 249),
                 ForeColor = StyleHelper.TextPrimary,
                 Cursor = Cursors.Hand,
-                Padding = new Padding(12, 6, 12, 6)
+                Padding = new Padding(14, 7, 14, 7),
+                Margin = new Padding(0, 0, 0, 8)
             };
             btnBack.FlatAppearance.BorderSize = 0;
             btnBack.Paint += (s, e) =>
@@ -111,17 +143,19 @@ namespace ShopProject.Forms
 
             lblName = new Label
             {
-                Font = new Font("Segoe UI", 22, FontStyle.Bold),
+                Font = new Font("Segoe UI", 20, FontStyle.Bold),
                 ForeColor = StyleHelper.TextPrimary,
                 AutoSize = false,
-                Size = new Size(0, 60)
+                Height = 70,
+                Margin = new Padding(0, 4, 0, 4)
             };
 
             lblPrice = new Label
             {
-                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                Font = new Font("Segoe UI", 26, FontStyle.Bold),
                 ForeColor = StyleHelper.Accent,
-                AutoSize = true
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, 0)
             };
 
             lblOldPrice = new Label
@@ -129,6 +163,18 @@ namespace ShopProject.Forms
                 Font = new Font("Segoe UI", 14, FontStyle.Strikeout),
                 ForeColor = Color.Gray,
                 AutoSize = true,
+                Margin = new Padding(0, 2, 0, 0),
+                Visible = false
+            };
+
+            lblDiscountBadge = new Label
+            {
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.White,
+                BackColor = StyleHelper.Danger,
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3),
+                Margin = new Padding(12, 8, 0, 0),
                 Visible = false
             };
 
@@ -136,15 +182,75 @@ namespace ShopProject.Forms
             {
                 Font = new Font("Segoe UI", 11),
                 ForeColor = StyleHelper.TextMuted,
-                AutoSize = true
+                AutoSize = true,
+                Margin = new Padding(0, 8, 0, 0)
             };
 
-            lblDescription = new Label
+            lblSeller = new Label
             {
-                Font = new Font("Segoe UI", 12),
+                Font = new Font("Segoe UI", 10),
+                ForeColor = StyleHelper.TextMuted,
+                AutoSize = true,
+                Margin = new Padding(0, 2, 0, 0)
+            };
+
+            lblSeparator1 = new Label
+            {
+                Text = "",
+                BackColor = StyleHelper.Border,
+                Height = 1,
+                Margin = new Padding(0, 14, 0, 10),
+                AutoSize = false
+            };
+
+            var descHeader = new Label
+            {
+                Text = "📄 Описание",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = StyleHelper.TextPrimary,
-                AutoSize = false,
-                AutoEllipsis = true
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, 4)
+            };
+
+            pnlDescriptionWrapper = new Panel
+            {
+                BackColor = Color.FromArgb(248, 250, 252),
+                Height = 140,
+                Margin = new Padding(0, 0, 0, 6),
+                AutoSize = false
+            };
+            pnlDescriptionWrapper.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                var rect = new Rectangle(0, 0, pnlDescriptionWrapper.Width - 1, pnlDescriptionWrapper.Height - 1);
+                using var path = StyleHelper.GetRoundedPath(rect, 8);
+                using var fill = new SolidBrush(pnlDescriptionWrapper.BackColor);
+                e.Graphics.FillPath(fill, path);
+                using var pen = new Pen(StyleHelper.Border, 1);
+                e.Graphics.DrawPath(pen, path);
+            };
+
+            rtbDescription = new RichTextBox
+            {
+                BackColor = Color.FromArgb(248, 250, 252),
+                BorderStyle = BorderStyle.None,
+                ReadOnly = true,
+                Font = new Font("Segoe UI", 11),
+                ForeColor = StyleHelper.TextPrimary,
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12, 8, 12, 8),
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                DetectUrls = false
+            };
+            pnlDescriptionWrapper.Controls.Add(rtbDescription);
+
+            lblSeparator2 = new Label
+            {
+                Text = "",
+                BackColor = StyleHelper.Border,
+                Height = 1,
+                Margin = new Padding(0, 8, 0, 12),
+                AutoSize = false
             };
 
             bool isModeration = _productService != null;
@@ -152,12 +258,13 @@ namespace ShopProject.Forms
             btnAddToCart = new Button
             {
                 Text = "🛒 Добавить в корзину",
-                Size = new Size(220, 48),
+                Size = new Size(220, 50),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = StyleHelper.Accent,
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand,
+                Margin = new Padding(0, 0, 0, 0),
                 Visible = !isModeration
             };
             btnAddToCart.FlatAppearance.BorderSize = 0;
@@ -185,12 +292,13 @@ namespace ShopProject.Forms
 
             btnFavorite = new Button
             {
-                Size = new Size(48, 48),
-                Font = new Font("Segoe UI", 18),
+                Size = new Size(50, 50),
+                Font = new Font("Segoe UI", 20),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(156, 163, 175),
                 Cursor = Cursors.Hand,
+                Margin = new Padding(12, 0, 0, 0),
                 Visible = !isModeration
             };
             btnFavorite.FlatAppearance.BorderSize = 0;
@@ -213,12 +321,13 @@ namespace ShopProject.Forms
             btnApprove = new Button
             {
                 Text = "✓ Одобрить",
-                Size = new Size(180, 48),
+                Size = new Size(180, 50),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(22, 163, 74),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand,
+                Margin = new Padding(0, 0, 12, 0),
                 Visible = isModeration
             };
             btnApprove.FlatAppearance.BorderSize = 0;
@@ -247,12 +356,13 @@ namespace ShopProject.Forms
             btnDecline = new Button
             {
                 Text = "✕ Отклонить",
-                Size = new Size(180, 48),
+                Size = new Size(180, 50),
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(220, 38, 38),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand,
+                Margin = new Padding(0, 0, 0, 0),
                 Visible = isModeration
             };
             btnDecline.FlatAppearance.BorderSize = 0;
@@ -278,57 +388,53 @@ namespace ShopProject.Forms
             };
             btnDecline.Click += (s, e) => DeclineProduct();
 
-            int y = 0;
-            btnBack.Location = new Point(0, y);
-            rightPanel.Controls.Add(btnBack);
-
-            y += 50;
-            lblName.Location = new Point(0, y);
-            lblName.Width = rightPanel.Width - 40;
-            rightPanel.Controls.Add(lblName);
-
-            y += 70;
-            lblPrice.Location = new Point(0, y);
-            rightPanel.Controls.Add(lblPrice);
-
-            y += 40;
-            lblOldPrice.Location = new Point(0, y);
-            rightPanel.Controls.Add(lblOldPrice);
-
-            if (lblOldPrice.Visible)
-                y += 30;
-
-            lblCategory.Location = new Point(0, y + 10);
-            rightPanel.Controls.Add(lblCategory);
-
-            y += 40;
-            lblDescription.Location = new Point(0, y);
-            lblDescription.Size = new Size(rightPanel.Width - 40, 100);
-            rightPanel.Controls.Add(lblDescription);
-
-            y += 120;
-
-            btnAddToCart.Location = new Point(0, y);
-            rightPanel.Controls.Add(btnAddToCart);
-
-            btnFavorite.Location = new Point(230, y);
-            rightPanel.Controls.Add(btnFavorite);
-
-            btnApprove.Location = new Point(0, y);
-            rightPanel.Controls.Add(btnApprove);
-
-            btnDecline.Location = new Point(190, y);
-            rightPanel.Controls.Add(btnDecline);
-
-            rightPanel.Resize += (s, e) =>
+            var actionsPanel = new FlowLayoutPanel
             {
-                lblName.Width = rightPanel.Width - 40;
-                lblDescription.Width = rightPanel.Width - 40;
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                BackColor = Color.White,
+                Margin = new Padding(0, 4, 0, 0)
+            };
+
+            if (isModeration)
+            {
+                actionsPanel.Controls.Add(btnApprove);
+                actionsPanel.Controls.Add(btnDecline);
+            }
+            else
+            {
+                actionsPanel.Controls.Add(btnAddToCart);
+                actionsPanel.Controls.Add(btnFavorite);
+            }
+
+            rightFlow.Controls.Add(btnBack);
+            rightFlow.Controls.Add(lblName);
+            rightFlow.Controls.Add(lblPrice);
+            rightFlow.Controls.Add(lblCategory);
+            rightFlow.Controls.Add(lblSeller);
+            rightFlow.Controls.Add(lblSeparator1);
+            rightFlow.Controls.Add(descHeader);
+            rightFlow.Controls.Add(pnlDescriptionWrapper);
+            rightFlow.Controls.Add(lblSeparator2);
+            rightFlow.Controls.Add(actionsPanel);
+
+            rightFlow.Resize += (s, e) =>
+            {
+                int w = rightFlow.ClientSize.Width - rightFlow.Padding.Horizontal;
+                if (w > 0)
+                {
+                    lblName.Width = w;
+                    lblSeparator1.Width = w;
+                    lblSeparator2.Width = w;
+                    pnlDescriptionWrapper.Width = w;
+                }
             };
 
             mainPanel.Controls.Clear();
             mainPanel.Controls.Add(leftPanel, 0, 0);
-            mainPanel.Controls.Add(rightPanel, 1, 0);
+            mainPanel.Controls.Add(rightFlow, 1, 0);
 
             this.Controls.Clear();
             this.Controls.Add(mainPanel);
@@ -337,21 +443,60 @@ namespace ShopProject.Forms
         private void LoadProductDetails()
         {
             lblName.Text = _product.Name ?? "Без названия";
-            lblCategory.Text = $"Категория: {_product.Category ?? "Не указана"}";
-            lblDescription.Text = _product.Description ?? "Описание отсутствует";
+            lblCategory.Text = $"📂 {_product.Category ?? "Не указана"}";
+            LoadSellerInfo();
+
+            rtbDescription.Text = _product.Description ?? "Описание отсутствует";
 
             decimal finalPrice = _discountService.CalculatePrice(_product);
+
+            int priceIndex = rightFlow.Controls.GetChildIndex(lblPrice);
 
             if (finalPrice < _product.Price)
             {
                 lblPrice.Text = $"{finalPrice:N0} ₽";
+                lblPrice.ForeColor = StyleHelper.Danger;
+
+                var discountRow = new FlowLayoutPanel
+                {
+                    FlowDirection = FlowDirection.LeftToRight,
+                    WrapContents = false,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    BackColor = Color.White,
+                    Margin = new Padding(0, 2, 0, 0),
+                    Name = "discountRow"
+                };
+
                 lblOldPrice.Text = $"{_product.Price:N0} ₽";
                 lblOldPrice.Visible = true;
+                discountRow.Controls.Add(lblOldPrice);
+
+                var disc = _discountService.GetByProduct(_product.Id);
+                if (disc != null)
+                {
+                    lblDiscountBadge.Text = $"  -{disc.Percent:F0}%  ";
+                    lblDiscountBadge.Visible = true;
+                    discountRow.Controls.Add(lblDiscountBadge);
+                }
+
+                var existing = rightFlow.Controls["discountRow"];
+                if (existing != null)
+                    rightFlow.Controls.Remove(existing);
+
+                rightFlow.Controls.Add(discountRow);
+                rightFlow.Controls.SetChildIndex(discountRow, priceIndex + 1);
             }
             else
             {
                 lblPrice.Text = $"{_product.Price:N0} ₽";
+                lblPrice.ForeColor = StyleHelper.Accent;
                 lblOldPrice.Visible = false;
+                lblDiscountBadge.Visible = false;
+
+                var existing = rightFlow.Controls["discountRow"];
+                if (existing != null)
+                    rightFlow.Controls.Remove(existing);
             }
 
             UpdateFavoriteState();
@@ -366,6 +511,26 @@ namespace ShopProject.Forms
                     img.Dispose();
                 }
                 catch { }
+            }
+        }
+
+        private void LoadSellerInfo()
+        {
+            if (_product.SellerId == null)
+            {
+                lblSeller.Text = "";
+                return;
+            }
+            try
+            {
+                var seller = _context.users.Find(_product.SellerId.Value);
+                lblSeller.Text = seller != null
+                    ? $"👤 Продавец: {seller.Name}"
+                    : "";
+            }
+            catch
+            {
+                lblSeller.Text = "";
             }
         }
 
