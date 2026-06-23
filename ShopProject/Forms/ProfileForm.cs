@@ -43,6 +43,7 @@ namespace ShopProject.Forms
         public Action<Product, ProductService>? ProductClickedForModeration { get; set; }
         public Action<Order>? OrderClicked { get; set; }
         public Action? DiscountChanged { get; set; }
+        public Action? DataChanged { get; set; }
 
         public ProfileForm(AuthService authService, UserService userService, AppDbContext context,
             ProductService productService, OrderService orderService, DiscountService discountService)
@@ -455,6 +456,16 @@ namespace ShopProject.Forms
         {
             var form = new ModerationForm(_authService, _productService);
             form.OnProductClick = (product, ps) => ProductClickedForModeration?.Invoke(product, ps);
+            form.ProductApproved += () =>
+            {
+                DataChanged?.Invoke();
+                RefreshModerationList();
+            };
+            form.FormClosed += (s, e) =>
+            {
+                DataChanged?.Invoke();
+                RefreshModerationList();
+            };
             ShowInnerForm(form);
         }
 
