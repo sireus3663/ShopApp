@@ -13,7 +13,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
     {
         private readonly ProductService _productService;
 
-        public override string Name => "products";
+        public override string Name => "product list";
         public override string Description => "Показать все одобренные товары";
         public override bool AvailableForGuest => true;
 

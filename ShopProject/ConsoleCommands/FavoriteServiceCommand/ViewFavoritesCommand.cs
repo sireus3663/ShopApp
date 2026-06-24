@@ -16,7 +16,7 @@ namespace ShopProject.ConsoleCommands.FavoriteServiceCommand
         private readonly AuthService _authService;
         private readonly ProductRepository _productRepo;
 
-        public override string Name => "favorites-view";
+        public override string Name => "fav list";
         public override string Description => "Показать избранные товары";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 

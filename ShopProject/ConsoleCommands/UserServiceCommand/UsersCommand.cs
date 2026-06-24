@@ -16,7 +16,7 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
         private readonly UserRepository _userRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "users";
+        public override string Name => "user list";
         public override string Description => "Показать всех пользователей (только админ)";
         public override List<Role> AvailableFor => new List<Role> { Role.Admin };
 

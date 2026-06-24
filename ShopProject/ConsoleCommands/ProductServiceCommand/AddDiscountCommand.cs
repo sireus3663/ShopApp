@@ -16,8 +16,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductRepository _productRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "add-descount";
-        public override string Description => "Добавить скидку на товар. Использование: add-discount <id товара> <процент>";
+        public override string Name => "discount add";
+        public override string Description => "Добавить скидку на товар. Использование: discount add <id товара> <процент>";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 
         public AddDiscountCommand(DiscountService discountService, ProductRepository productRepo, AuthService authService)

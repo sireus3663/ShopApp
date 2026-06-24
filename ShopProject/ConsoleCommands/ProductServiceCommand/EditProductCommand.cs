@@ -17,8 +17,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductRepository _productRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "edit-product";
-        public override string Description => "Редактировать товар. Использование: edit-product <id> <price|name|desc|category> <новое_значение>";
+        public override string Name => "product edit";
+        public override string Description => "Редактировать товар. Использование: product edit <id> <price|name|desc|category> <новое_значение>";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 
         public EditProductCommand(ProductRepository productRepo, AuthService authService)

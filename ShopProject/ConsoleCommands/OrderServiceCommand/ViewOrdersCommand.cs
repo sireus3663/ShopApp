@@ -14,7 +14,7 @@ namespace ShopProject.ConsoleCommands.OrderServiceCommand
         private readonly OrderService _orderService;
         private readonly AuthService _authService;
 
-        public override string Name => "my-order";
+        public override string Name => "order list";
         public override string Description => "Показать все мои заказы";
 
         public ViewOrdersCommand(OrderService orderService, AuthService authService)

@@ -18,8 +18,8 @@ namespace ShopProject.ConsoleCommands.OrderServiceCommand
         private readonly OrderRepository _orderRepo;
         private readonly UserRepository _userRepo;
 
-        public override string Name => "return-product";
-        public override string Description => "Вернуть заказ. Использование: return <id заказа>";
+        public override string Name => "order return";
+        public override string Description => "Вернуть заказ. Использование: order return <id заказа>";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 
         public ReturnOrderCommand(OrderService orderService, AuthService authService, OrderRepository orderRepo, UserRepository userRepo)

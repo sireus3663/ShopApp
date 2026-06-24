@@ -17,8 +17,8 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
         private readonly AuthService _authService;
         private readonly ProductRepository _productRepo;
 
-        public override string Name => "cart-add";
-        public override string Description => "Добавить в корзину. Использование: cart-add <id товара>";
+        public override string Name => "cart add";
+        public override string Description => "Добавить в корзину. Использование: cart add <id товара>";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 
         public AddToCartCommand(CartService cartService, AuthService authService, ProductRepository productRepo)

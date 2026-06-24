@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
         private readonly ModeratorService _moderatorService;
         private readonly AuthService _authService;
 
-        public override string Name => "view-profile";
-        public override string Description => "Просмотр профиля пользователя. Использование: view-profile <email>";
+        public override string Name => "user view";
+        public override string Description => "Просмотр профиля пользователя. Использование: user view <email>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ViewUserProfileCommand(ModeratorService moderatorService, AuthService authService)

@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
         private readonly ModeratorService _moderatorService;
         private readonly AuthService _authService;
 
-        public override string Name => "set-balance";
-        public override string Description => "Изменить баланс пользователя. Использование: set-balance <email> <сумма>";
+        public override string Name => "balance set";
+        public override string Description => "Изменить баланс пользователя. Использование: balance set <email> <сумма>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ChangeBalanceCommand(ModeratorService moderatorService, AuthService authService)

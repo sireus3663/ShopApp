@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
         private readonly ProductService _productService;
         private readonly AuthService _authService;
 
-        public override string Name => "decline";
-        public override string Description => "Отклонить товар. Использование: decline <id товара>";
+        public override string Name => "moderate decline";
+        public override string Description => "Отклонить товар. Использование: moderate decline <id товара>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public DeclineProductCommand(ProductService productService, AuthService authService)
