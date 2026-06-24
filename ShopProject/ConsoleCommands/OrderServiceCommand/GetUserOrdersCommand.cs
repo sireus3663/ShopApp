@@ -13,7 +13,7 @@ namespace ShopProject.ConsoleCommands.OrderServiceCommand
         private readonly OrderService _orderService;
         private readonly AuthService _authService;
 
-        public override string Name => "orders";
+        public override string Name => "my orders";
         public override string Description => "Показать мои заказы";
         public GetUserOrdersCommand(OrderService orderService, AuthService authService)
         {

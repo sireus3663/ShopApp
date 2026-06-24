@@ -15,7 +15,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductRepository _productRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "my-products";
+        public override string Name => "my products";
         public override string Description => "Показать мои товары (продавец)";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 

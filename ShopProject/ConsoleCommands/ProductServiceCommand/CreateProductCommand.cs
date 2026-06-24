@@ -15,8 +15,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductService _productService;
         private readonly AuthService _authService;
 
-        public override string Name => "create-product";
-        public override string Description => "Создание продукта. Использование: create-product <название> <описание> <цена> <категория>";
+        public override string Name => "product create";
+        public override string Description => "Создание продукта. Использование: product create <название> <описание> <цена> <категория>";
         public override List<Role> AvailableFor => new List<Role> { Role.Seller, Role.Admin };
 
         public CreateProductCommand(ProductService productService, AuthService authService)

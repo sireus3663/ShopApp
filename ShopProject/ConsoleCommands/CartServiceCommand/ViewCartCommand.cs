@@ -16,7 +16,7 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
         private readonly AuthService _authService;
         private readonly ProductRepository _productRepo;
 
-        public override string Name => "cart-view";
+        public override string Name => "cart view";
         public override string Description => "Показать корзину";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer, Role.Seller };
 

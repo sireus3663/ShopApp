@@ -16,8 +16,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
         private readonly ProductRepository _productRepo;
         private readonly AuthService _authService;
 
-        public override string Name => "delete-product";
-        public override string Description => "Удалить товар. Использование: delete-product <id>";
+        public override string Name => "product delete";
+        public override string Description => "Удалить товар. Использование: product delete <id>";
         public override List<Role> AvailableFor => new List<Role> { Role.Admin };
 
         public DeleteProductCommand(ProductService productService, ProductRepository productRepo, AuthService authService)

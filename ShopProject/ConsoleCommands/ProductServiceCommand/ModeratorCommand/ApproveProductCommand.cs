@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
         private readonly ProductService _productService;
         private readonly AuthService _authService;
 
-        public override string Name => "approve";
-        public override string Description => "Одобрить товар. Использование: approve <id товара>";
+        public override string Name => "moderate approve";
+        public override string Description => "Одобрить товар. Использование: moderate approve <id товара>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ApproveProductCommand(ProductService productService, AuthService authService)

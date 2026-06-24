@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.FavoriteServiceCommand
         private readonly FavoriteService _favoriteService;
         private readonly AuthService _authService;
 
-        public override string Name => "favorite";
-        public override string Description => "Добавить/Удалить из избранного. Использование: favorite <id товара>";
+        public override string Name => "fav toggle";
+        public override string Description => "Добавить/Удалить из избранного. Использование: fav toggle <id товара>";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 
         public ToggleFavoriteCommand(FavoriteService favoriteService, AuthService authService)

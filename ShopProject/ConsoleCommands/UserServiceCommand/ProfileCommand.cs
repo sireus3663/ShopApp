@@ -13,7 +13,7 @@ namespace ShopProject.ConsoleCommands.UserServiceCommand
         private readonly UserService _userService;
         private readonly AuthService _authService;
 
-        public override string Name => "profile";
+        public override string Name => "user profile";
         public override string Description => "Показать профиль";
 
         public ProfileCommand(UserService userService, AuthService authService)

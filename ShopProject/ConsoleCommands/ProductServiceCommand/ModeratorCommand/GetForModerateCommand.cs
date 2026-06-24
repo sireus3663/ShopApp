@@ -14,7 +14,7 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand.ModeratorCommand
         private readonly AuthService _authService;
         private readonly ProductService _productService;
 
-        public override string Name => "moderate";
+        public override string Name => "moderate list";
         public override string Description => "Показать товары на модерации (только модератор/админ)";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 

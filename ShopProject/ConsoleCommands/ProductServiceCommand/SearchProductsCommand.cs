@@ -12,8 +12,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
     {
         private readonly ProductRepository _productRepo;
 
-        public override string Name => "search";
-        public override string Description => "Поиск товаров. Испорльзование: search <название>";
+        public override string Name => "product search";
+        public override string Description => "Поиск товаров. Использование: product search <название>";
         public override bool AvailableForGuest => true;
 
         public SearchProductsCommand(ProductRepository productRepo) { _productRepo = productRepo; }

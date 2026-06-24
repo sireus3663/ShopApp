@@ -12,7 +12,7 @@ namespace ShopProject
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();
 
-        public static void Run(string[] args) 
+        public static void Run(string[] args)
         {
             AllocConsole();
 
@@ -70,7 +70,6 @@ namespace ShopProject
                 }
             }
 
-
             var registry = new CommandRegistry(logger);
             CommandInitializer.RegisterAll(registry, logger, authService, userService, cartService,
                 favoriteService, productService, orderService, moderatorService, discountService,
@@ -109,13 +108,24 @@ namespace ShopProject
                 else
                 {
                     var parts = input.Split(' ');
-                    var cmdName = parts[0];
-                    var cmdArgs = parts.Skip(1).ToArray();
-
-                    var command = registry.Get(cmdName);
-                    if (command != null)
+                    if (parts.Length >= 2)
                     {
-                        registry.Execute(cmdName, cmdArgs);
+                        var twoWordCommand = $"{parts[0]} {parts[1]}";
+                        var command = registry.Get(twoWordCommand);
+                        if (command != null)
+                        {
+                            var cmdArgs = parts.Skip(2).ToArray();
+                            registry.Execute(command.Name, cmdArgs);
+                            continue;
+                        }
+                    }
+                    var cmdName = parts[0];
+                    var cmdArgs2 = parts.Skip(1).ToArray();
+
+                    var command2 = registry.Get(cmdName);
+                    if (command2 != null)
+                    {
+                        registry.Execute(cmdName, cmdArgs2);
                     }
                     else
                     {

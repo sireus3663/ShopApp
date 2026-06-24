@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.ModeratorServiceCommand
         private readonly ModeratorService _moderatorService;
         private readonly AuthService _authService;
 
-        public override string Name => "block";
-        public override string Description => "Блокировка/разблокировка пользователя. Использование: block <email>";
+        public override string Name => "user block";
+        public override string Description => "Блокировка/разблокировка пользователя. Использование: user block <email>";
         public override List<Role> AvailableFor => new List<Role> { Role.Moderator, Role.Admin };
 
         public ToggleBlockCommand(ModeratorService moderatorService, AuthService authService)

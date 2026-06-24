@@ -12,8 +12,8 @@ namespace ShopProject.ConsoleCommands.ProductServiceCommand
     {
         private readonly ProductRepository _productRepo;
 
-        public override string Name => "category";
-        public override string Description => "Товары по котегории. Использование: category <категория>";
+        public override string Name => "product category";
+        public override string Description => "Товары по категории. Использование: product category <категория>";
         public override bool AvailableForGuest => true;
         public GetByCategoryCommand(ProductRepository productRepo) { _productRepo = productRepo; }
         public override void Execute(string[] args)

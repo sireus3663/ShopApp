@@ -14,7 +14,7 @@ namespace ShopProject.ConsoleCommands
         private readonly OrderService _orderService;
         private readonly AuthService _authService;
 
-        public override string Name => "buy";
+        public override string Name => "cart buy";
         public override string Description => "Оформить покупку всех товаров из корзины";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer, Role.Seller };
 

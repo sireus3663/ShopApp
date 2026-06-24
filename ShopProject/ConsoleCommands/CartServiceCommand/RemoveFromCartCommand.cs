@@ -14,8 +14,8 @@ namespace ShopProject.ConsoleCommands.CartServiceCommand
         private readonly AuthService _authService;
         private readonly CartService _cartService;
 
-        public override string Name => "cart-remove";
-        public override string Description => "Удалить из корзины. Использование: cart-remove <id товара>";
+        public override string Name => "cart remove";
+        public override string Description => "Удалить из корзины. Использование: cart remove <id товара>";
         public override List<Role> AvailableFor => new List<Role> { Role.Buyer };
 
         public RemoveFromCartCommand(AuthService authService, CartService cartService)
