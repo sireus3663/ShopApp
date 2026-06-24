@@ -16,6 +16,7 @@ namespace ShopProject.Forms
         private readonly Label lblTitle;
 
         public Action<Product, ProductService>? OnProductClick { get; set; }
+        public event Action? ProductApproved;
 
         public ModerationForm(AuthService authService, ProductService productService)
         {
@@ -289,6 +290,7 @@ namespace ShopProject.Forms
             try
             {
                 _productService.Approve(product.Id);
+                ProductApproved?.Invoke();
                 MessageBox.Show("Товар одобрен");
                 LoadProducts();
             }

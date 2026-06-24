@@ -895,6 +895,7 @@ namespace ShopProject.Forms
             profileForm.ProductClickedForModeration = (product, ps) => OpenProductDetail(product, ps);
             profileForm.OrderClicked = null;
             profileForm.DiscountChanged = () => _ = RefreshAllData();
+            profileForm.DataChanged = () => _ = RefreshAllData();
             ShowEmbeddedForm(profileForm);
             profileForm.RefreshData();
         }
@@ -966,7 +967,7 @@ namespace ShopProject.Forms
 
                 if (productService != null)
                 {
-                    _ = LoadProductsAsync();
+                    _ = RefreshAllData();
                     if (_currentEmbeddedForm is ProfileForm pf)
                         pf.RefreshModerationList();
                 }
